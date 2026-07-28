@@ -1,0 +1,2 @@
+# Keep this directory for portable Codex rule files supported by your installed
+# Codex version. Do not place authentication, session, or machine-local state here.

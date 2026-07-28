@@ -1,0 +1,10 @@
+---
+description: Prevent excessive delegation, recursive agents, and unnecessary Sol usage.
+alwaysApply: true
+---
+
+# Delegation budget
+For one user task, use at most one sol-planner, one initial sol-reviewer, one
+additional sol-reviewer after material blocking fixes, and one luna-log-analyst
+per distinct log set. Subagents must not invoke other subagents. The parent
+agent owns implementation, validation, and reporting.

@@ -1,0 +1,10 @@
+---
+description: Protect user work, Git history, credentials, and the filesystem.
+alwaysApply: true
+---
+
+# Git and filesystem safety
+Do not use destructive commands such as git reset --hard, git clean -fd,
+force pushes, forced branch deletion, or broad recursive deletion unless the
+user explicitly requests them. Never print, copy, commit, upload, or expose
+credentials, private keys, tokens, authentication caches, or production secrets.

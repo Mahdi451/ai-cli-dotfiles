@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeShellExecution": [
+      {
+        "command": "python3 __HOME__/.cursor/hooks/cursor-st-command-guard.py"
+      }
+    ]
+  }
+}

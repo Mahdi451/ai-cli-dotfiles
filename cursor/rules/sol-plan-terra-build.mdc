@@ -1,0 +1,16 @@
+---
+description: Enforce the Sol-plan, Terra-build, Sol-review workflow for substantial work.
+alwaysApply: true
+---
+
+# Sol plan -> Terra build -> Sol review
+For every non-trivial coding task:
+1. Invoke sol-planner once before editing.
+2. Verify the returned plan against repository evidence.
+3. Implement with the Terra parent.
+4. Run relevant tests, linting, type checks, and builds.
+5. Inspect the final diff.
+6. Invoke sol-reviewer once and fix blocking findings.
+
+The parent model is GPT-5.6 Terra with ordinary medium/default reasoning; the
+CLI may control exact effort, so do not claim it was hard-pinned.

@@ -1,0 +1,10 @@
+---
+description: Require executed evidence before declaring implementation complete.
+alwaysApply: true
+---
+
+# Verification before completion
+Discover the repository's validation commands, run relevant tests, linting,
+type checks, and builds, then inspect git diff and git status. Report exact
+commands and results. If validation cannot run, say why rather than claiming it
+passed.

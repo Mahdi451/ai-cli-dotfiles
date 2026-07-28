@@ -1,0 +1,54 @@
+# Repository and editor metadata
+.git/
+.DS_Store
+*.swp
+*~
+__pycache__/
+*.pyc
+
+# Secrets and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+id_*
+!id_*.example
+auth.json
+credentials.json
+token*
+*token*
+*.secret
+*.secrets
+
+# Authentication, sessions, and machine state
+sessions/
+history*
+cache/
+logs/
+log/
+*.sqlite
+*.sqlite-*
+*.jsonl
+*.db
+state/
+backups/
+shell_snapshots/
+generated_images/
+installation_id
+models_cache.json
+
+# Explicitly never import sensitive home configuration
+.ssh/
+.aws/
+.config/gh/
+.git-credentials
+.netrc
+
+# Only the documented portable Codex framework belongs here.
+codex/config/*.toml
+!codex/config/.gitkeep

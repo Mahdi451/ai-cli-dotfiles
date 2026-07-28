@@ -1,0 +1,7 @@
+---
+description: Describe the portable rule.
+alwaysApply: true
+---
+
+# Rule title
+State concise, verifiable guidance. Avoid machine-specific paths and secrets.

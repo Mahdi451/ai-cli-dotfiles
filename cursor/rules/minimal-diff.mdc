@@ -1,0 +1,9 @@
+---
+description: Keep changes minimal, focused, and consistent with the repository.
+alwaysApply: true
+---
+
+# Minimal diff
+Prefer the smallest complete change. Do not refactor unrelated code, upgrade
+dependencies without need, or change public APIs unnecessarily. Preserve
+existing conventions and explain unavoidable scope expansion.
