@@ -102,15 +102,38 @@ scripts under `cursor/hooks/`. Update the installer whitelist when adding a
 new managed Cursor file. `hooks.json` uses `__HOME__`, which is expanded only
 when merged into the local user configuration. Do not add absolute paths.
 
-## Future Codex support
+## Codex workflow
 
-Codex CLI 0.145.0 documents `~/.codex/config.toml`, but live config may mix
-safe preferences with trusted paths or credentials. This repository therefore
-stores only reviewable instructions, rules, prompts, and blank opt-in config
-templates. `cdx` is a normal alias; `codexy` uses Codex's real
-`--dangerously-bypass-approvals-and-sandbox` option and is dangerous. Codex
-uses TOML custom-agent files rather than Cursor Markdown. The corresponding
-personal workflow is installed separately under `~/.codex/agents`.
+Codex CLI loads `~/.codex/AGENTS.md` automatically at the start of every
+session. `./install.sh --include-codex` installs the portable instructions and
+rules without copying authentication, history, sessions, caches, or
+machine-specific trust state. Codex uses TOML custom-agent files rather than
+Cursor Markdown; the personal agent definitions are installed under
+`~/.codex/agents`.
+
+The configured workflow is active by default for nontrivial tasks:
+
+1. Sol (`gpt-5.6-sol`) creates a read-only implementation plan.
+2. Luna (`gpt-5.6-luna`) handles bounded implementation work.
+3. Terra (`gpt-5.6-terra`) handles complex implementation and performs the
+   final read-only review.
+4. Validation runs before completion, and Terra must have no unresolved
+   blocking findings.
+
+Trivial tasks may be handled directly by Luna. This workflow is automatically
+instructed through `AGENTS.md`, but it is not hard-enforced by the CLI. For an
+important task, reinforce it with:
+
+```text
+Use the configured three-model workflow from AGENTS.md. For nontrivial work,
+invoke sol_planner first, delegate implementation to luna_worker or
+terra_implementer as appropriate, run validation, and finish with
+terra_reviewer. Do not skip stages.
+```
+
+`cdx` is the normal Codex alias. `codexy` uses Codex's real
+`--dangerously-bypass-approvals-and-sandbox` option and is dangerous; it does
+not enable or improve the three-model workflow.
 
 ## Secret policy
 
