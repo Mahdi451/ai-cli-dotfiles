@@ -26,10 +26,10 @@ copy_safe() {
   chmod -- "$(stat -c '%a' "$source")" "$destination"
 }
 
-for name in sol-planner.md sol-reviewer.md luna-log-analyst.md; do
+for name in sol-planner.md luna-worker.md terra-implementer.md terra-reviewer.md; do
   copy_safe "$CURSOR_HOME/agents/$name" "cursor/agents/$name"
 done
-for name in sol-plan-terra-build.mdc verification-before-done.mdc minimal-diff.mdc git-filesystem-safety.mdc delegation-budget.mdc; do
+for name in model-routing.mdc verification-before-done.mdc minimal-diff.mdc git-filesystem-safety.mdc; do
   copy_safe "$CURSOR_HOME/rules/$name" "cursor/rules/$name"
 done
 copy_safe "$CURSOR_HOME/hooks/cursor-st-command-guard.py" "cursor/hooks/cursor-st-command-guard.py"

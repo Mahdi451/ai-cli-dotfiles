@@ -72,10 +72,18 @@ fi
 
 git -C "$ROOT" status --short
 if command -v agent >/dev/null 2>&1; then
-  models="$(agent models 2>/dev/null || true)"
-  for family in gpt-5.6-sol gpt-5.6-terra gpt-5.6-luna; do
-    [[ "$models" == *"$family"* ]] || warn "Cursor models do not list $family; check model aliases"
-  done
+  if command -v timeout >/dev/null 2>&1; then
+    models="$(timeout 20 agent --list-models 2>/dev/null || true)"
+  else
+    models="$(agent --list-models 2>/dev/null || true)"
+  fi
+  if [[ -n "$models" ]]; then
+    for model in gpt-5.6-sol-high gpt-5.6-terra-medium gpt-5.6-terra-high gpt-5.6-luna-medium; do
+      [[ "$models" == *"$model"* ]] || warn "Cursor models do not list required model $model"
+    done
+  else
+    warn "Cursor model catalog was unavailable; model pins were verified from local configuration only"
+  fi
 fi
 note "doctor: failures=$failures warnings=$warnings"
 exit "$failures"

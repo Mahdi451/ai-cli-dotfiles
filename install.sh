@@ -44,7 +44,21 @@ if [[ "$INCLUDE_CODEX" == true ]] && ! command -v codex >/dev/null 2>&1; then
 fi
 
 install_cursor() {
-  local kind name source target
+  local kind name source target legacy
+  for legacy in \
+    "$CURSOR_HOME/agents/sol-reviewer.md" \
+    "$CURSOR_HOME/agents/luna-log-analyst.md" \
+    "$CURSOR_HOME/rules/sol-plan-terra-build.mdc" \
+    "$CURSOR_HOME/rules/delegation-budget.mdc"; do
+    if [[ -e "$legacy" || -L "$legacy" ]]; then
+      backup_existing "$legacy" "$BACKUP_DIR"
+      if [[ "$DRY_RUN" == true ]]; then
+        note "dry-run: remove obsolete managed workflow file $legacy"
+      else
+        rm -f -- "$legacy"
+      fi
+    fi
+  done
   for kind in agents rules; do
     for source in "$ROOT/cursor/$kind/"*; do
       name="$(basename -- "$source")"

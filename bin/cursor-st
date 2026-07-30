@@ -1,22 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-WORKFLOW_VERSION='3.0.0'
-TERRA_MODEL="${CURSOR_TERRA_MODEL:-gpt-5.6-terra}"
-SOL_MODEL="${CURSOR_SOL_MODEL:-gpt-5.6-sol}"
-LUNA_MODEL="${CURSOR_LUNA_MODEL:-gpt-5.6-luna}"
+WORKFLOW_VERSION='4.0.0'
+PARENT_MODEL="${CURSOR_LUNA_MODEL:-gpt-5.6-luna-medium}"
+SOL_MODEL="${CURSOR_SOL_MODEL:-gpt-5.6-sol-high}"
+TERRA_MODEL="${CURSOR_TERRA_MODEL:-gpt-5.6-terra-medium}"
+TERRA_REVIEW_MODEL="${CURSOR_TERRA_REVIEW_MODEL:-gpt-5.6-terra-high}"
 CURSOR_HOME="${CURSOR_HOME:-$HOME/.cursor}"
 
 find_agent_bin() {
   if command -v agent >/dev/null 2>&1; then
     command -v agent
+  elif command -v cursor-agent >/dev/null 2>&1; then
+    command -v cursor-agent
   else
     printf 'Cursor CLI not found. Install the official agent executable first.\n' >&2
     exit 1
   fi
 }
 
-workspace_root() { git rev-parse --show-toplevel 2>/dev/null || pwd -P; }
+workspace_root() {
+  git rev-parse --show-toplevel 2>/dev/null || pwd -P
+}
 
 safe_link() {
   local source="$1" target="$2"
@@ -24,7 +29,10 @@ safe_link() {
   if [[ -L "$target" ]] && [[ "$(readlink -f -- "$target" 2>/dev/null || true)" == "$(readlink -f -- "$source")" ]]; then
     return 0
   fi
-  [[ ! -e "$target" && ! -L "$target" ]] || { printf 'Refusing to replace unrelated project file: %s\n' "$target" >&2; exit 1; }
+  [[ ! -e "$target" && ! -L "$target" ]] || {
+    printf 'Refusing to replace unrelated project file: %s\n' "$target" >&2
+    exit 1
+  }
   ln -s -- "$source" "$target"
 }
 
@@ -37,67 +45,145 @@ exclude_from_git() {
   grep -Fxq "$relative" "$exclude" || printf '%s\n' "$relative" >> "$exclude"
 }
 
+remove_from_git_exclude() {
+  local root="$1" relative="$2" exclude temp
+  git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 0
+  exclude="$(git -C "$root" rev-parse --git-path info/exclude)"
+  [[ -f "$exclude" ]] || return 0
+  temp="$(mktemp)"
+  grep -Fxv "$relative" "$exclude" > "$temp" || true
+  cp -- "$temp" "$exclude"
+  rm -f -- "$temp"
+}
+
 ROOT="$(workspace_root)"
 SOURCES=(
   "$CURSOR_HOME/agents/sol-planner.md"
-  "$CURSOR_HOME/agents/sol-reviewer.md"
-  "$CURSOR_HOME/agents/luna-log-analyst.md"
-  "$CURSOR_HOME/rules/sol-plan-terra-build.mdc"
+  "$CURSOR_HOME/agents/luna-worker.md"
+  "$CURSOR_HOME/agents/terra-implementer.md"
+  "$CURSOR_HOME/agents/terra-reviewer.md"
+  "$CURSOR_HOME/rules/model-routing.mdc"
   "$CURSOR_HOME/rules/verification-before-done.mdc"
   "$CURSOR_HOME/rules/minimal-diff.mdc"
   "$CURSOR_HOME/rules/git-filesystem-safety.mdc"
-  "$CURSOR_HOME/rules/delegation-budget.mdc"
 )
 TARGETS=(
   ".cursor/agents/global-sol-planner.md"
-  ".cursor/agents/global-sol-reviewer.md"
-  ".cursor/agents/global-luna-log-analyst.md"
-  ".cursor/rules/global-sol-plan-terra-build.mdc"
+  ".cursor/agents/global-luna-worker.md"
+  ".cursor/agents/global-terra-implementer.md"
+  ".cursor/agents/global-terra-reviewer.md"
+  ".cursor/rules/global-model-routing.mdc"
   ".cursor/rules/global-verification-before-done.mdc"
   ".cursor/rules/global-minimal-diff.mdc"
   ".cursor/rules/global-git-filesystem-safety.mdc"
+)
+LEGACY_SOURCES=(
+  "$CURSOR_HOME/agents/sol-reviewer.md"
+  "$CURSOR_HOME/agents/luna-log-analyst.md"
+  "$CURSOR_HOME/rules/sol-plan-terra-build.mdc"
+  "$CURSOR_HOME/rules/delegation-budget.mdc"
+)
+LEGACY_TARGETS=(
+  ".cursor/agents/global-sol-reviewer.md"
+  ".cursor/agents/global-luna-log-analyst.md"
+  ".cursor/rules/global-sol-plan-terra-build.mdc"
   ".cursor/rules/global-delegation-budget.mdc"
 )
 
+remove_managed_link() {
+  local source="$1" target="$2" link
+  [[ -L "$target" ]] || return 0
+  link="$(readlink -- "$target")"
+  if [[ "$link" == "$source" ]] || [[ "$(readlink -f -- "$target" 2>/dev/null || true)" == "$(readlink -f -- "$source" 2>/dev/null || true)" ]]; then
+    rm -f -- "$target"
+  fi
+}
+
+remove_legacy_project_links() {
+  local index
+  for index in "${!LEGACY_SOURCES[@]}"; do
+    remove_managed_link "${LEGACY_SOURCES[$index]}" "$ROOT/${LEGACY_TARGETS[$index]}"
+    remove_from_git_exclude "$ROOT" "${LEGACY_TARGETS[$index]}"
+  done
+}
+
 setup_project() {
   local index
+  remove_legacy_project_links
+  if [[ "$ROOT" == "$HOME" ]]; then
+    return 0
+  fi
   for index in "${!SOURCES[@]}"; do
-    [[ -f "${SOURCES[$index]}" ]] || { printf 'Missing managed Cursor file: %s\n' "${SOURCES[$index]}" >&2; exit 1; }
+    [[ -f "${SOURCES[$index]}" ]] || {
+      printf 'Missing managed Cursor file: %s\n' "${SOURCES[$index]}" >&2
+      exit 1
+    }
     safe_link "${SOURCES[$index]}" "$ROOT/${TARGETS[$index]}"
     exclude_from_git "$ROOT" "${TARGETS[$index]}"
   done
 }
 
 clean_project() {
-  local index target
+  local index
   for index in "${!SOURCES[@]}"; do
-    target="$ROOT/${TARGETS[$index]}"
-    if [[ -L "$target" ]] && [[ "$(readlink -f -- "$target" 2>/dev/null || true)" == "$(readlink -f -- "${SOURCES[$index]}")" ]]; then
-      rm -f -- "$target"
-    fi
+    remove_managed_link "${SOURCES[$index]}" "$ROOT/${TARGETS[$index]}"
+    remove_from_git_exclude "$ROOT" "${TARGETS[$index]}"
   done
+  remove_legacy_project_links
   rmdir "$ROOT/.cursor/agents" "$ROOT/.cursor/rules" "$ROOT/.cursor" 2>/dev/null || true
   printf 'Removed matching managed project symlinks from: %s\n' "$ROOT"
 }
 
 show_flow() {
   cat <<EOF
-Workflow version: $WORKFLOW_VERSION
-Sol planner/reviewer: $SOL_MODEL (read-only)
-Terra parent:         $TERRA_MODEL (effort remains Cursor-controlled)
-Luna log analyst:     $LUNA_MODEL (read-only)
+Workflow version:   $WORKFLOW_VERSION
+Luna parent:        $PARENT_MODEL
+Sol planner:        $SOL_MODEL (read-only)
+Luna worker:        gpt-5.6-luna-medium
+Terra implementer:  $TERRA_MODEL
+Terra reviewer:     $TERRA_REVIEW_MODEL (read-only)
+
+Flow:
+  trivial task    -> Luna parent
+  nontrivial task -> Sol plan -> Luna/Terra implementation
+                  -> verification -> Terra review -> routed fixes
 EOF
 }
 
+doctor() {
+  local source failures=0
+  find_agent_bin >/dev/null
+  for source in "${SOURCES[@]}"; do
+    if [[ ! -f "$source" ]]; then
+      printf 'Missing: %s\n' "$source" >&2
+      failures=$((failures + 1))
+    fi
+  done
+  show_flow
+  if ((failures)); then
+    return 1
+  fi
+  printf 'Workflow files: OK\n'
+}
+
 case "${1:-}" in
-  --doctor) find_agent_bin; show_flow; exit 0 ;;
+  --doctor) doctor; exit $? ;;
   --show-flow) show_flow; exit 0 ;;
   --clean-project) clean_project; exit 0 ;;
 esac
+
 for arg in "$@"; do
-  [[ "$arg" != --model && "$arg" != -m ]] || { printf 'cursor-st manages the parent model; do not pass --model/-m.\n' >&2; exit 2; }
+  if [[ "$arg" == --model || "$arg" == -m ]]; then
+    printf 'cursor-st manages the Luna parent model; do not pass --model/-m.\n' >&2
+    exit 2
+  fi
 done
+
 setup_project
-[[ "${1:-}" != --setup-only ]] || { printf 'Configured Cursor workflow in: %s\n' "$ROOT"; exit 0; }
+if [[ "${1:-}" == --setup-only ]]; then
+  printf 'Configured Cursor model-routing workflow in: %s\n' "$ROOT"
+  exit 0
+fi
+
 cd -- "$ROOT"
-exec "$(find_agent_bin)" --model "$TERRA_MODEL" "$@"
+exec "$(find_agent_bin)" --model "$PARENT_MODEL" "$@"

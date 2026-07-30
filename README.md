@@ -10,7 +10,7 @@ Cursor hook entry, and marked `.bashrc` blocks; it never replaces `agent` or
 - `cursor/` holds the reviewed global Cursor agents, rules, hook template, and
   hook script.
 - `bin/cursor-st` projects those global Cursor assets into the current project
-  as ignored symlinks, then starts the official `agent` executable with Terra.
+  as ignored symlinks, then starts the official `agent` executable with Luna.
 - `shell/` holds aliases installed at
   `~/.config/ai-cli-dotfiles/ai-cli-aliases.sh`.
 - `codex/` is an opt-in portable framework. It excludes all authentication,
@@ -18,11 +18,10 @@ Cursor hook entry, and marked `.bashrc` blocks; it never replaces `agent` or
 - `lib/manage.py` performs JSON hook merging and conservative secret scanning
   without additional dependencies.
 
-The normal Cursor flow is Sol planner (read-only) → Terra implementation →
-validation → Sol reviewer (read-only). Luna is reserved for large logs and
-failure triage. Terra targets ordinary medium/default reasoning, but Cursor
-controls the exact effort. Model-family availability varies by account, so
-`doctor.sh` warns rather than rejecting a compatible alias.
+The normal Cursor flow uses Luna as the parent and direct worker for trivial
+tasks. Nontrivial tasks use Sol for read-only planning, Luna for bounded work,
+Terra for complex implementation, and Terra at high effort for read-only final
+review. Model and effort values are pinned in each custom subagent file.
 
 ## Daily commands
 
@@ -110,8 +109,8 @@ safe preferences with trusted paths or credentials. This repository therefore
 stores only reviewable instructions, rules, prompts, and blank opt-in config
 templates. `cdx` is a normal alias; `codexy` uses Codex's real
 `--dangerously-bypass-approvals-and-sandbox` option and is dangerous. Codex
-does not provide the inspected Cursor-style custom subagent setup, so use
-explicit planning/review prompts instead.
+uses TOML custom-agent files rather than Cursor Markdown. The corresponding
+personal workflow is installed separately under `~/.codex/agents`.
 
 ## Secret policy
 

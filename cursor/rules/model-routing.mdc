@@ -1,0 +1,59 @@
+---
+alwaysApply: true
+---
+
+# Model Routing Workflow
+
+The parent agent is an orchestrator. The preferred parent model is GPT-5.6 Luna.
+
+## Classify the task
+
+A task is trivial when all of the following are true:
+
+- The intended change is obvious
+- It is localized and low-risk
+- It does not alter architecture, APIs, persistence, authentication,
+  concurrency, security boundaries, or core behavior
+- Acceptance can be verified with a focused command or inspection
+
+The Luna parent may perform trivial work directly.
+
+A task is nontrivial when it involves ambiguity, multiple modules, unfamiliar
+code, architectural choices, external APIs, data models, security, concurrency,
+migration, substantial debugging, or broad behavioral changes.
+
+## Required workflow for nontrivial tasks
+
+1. Before any file edits, invoke the sol-planner subagent.
+2. Treat the resulting plan as the implementation contract.
+3. Delegate each [LUNA] task to luna-worker.
+4. Delegate each [TERRA] task to terra-implementer.
+5. Do not run agents concurrently when their write scopes overlap.
+6. After implementation, run appropriate tests and verification.
+7. Invoke terra-reviewer on the complete final diff.
+8. Send straightforward review fixes to luna-worker.
+9. Send complex review fixes to terra-implementer.
+10. Repeat the Terra review after blocking or important fixes.
+
+## Sol escalation conditions
+
+Invoke sol-planner again only when:
+
+- Requirements materially change
+- The discovered architecture contradicts the plan
+- A public interface or data model must change unexpectedly
+- Two implementation or repair attempts fail
+- The reviewer identifies a fundamental design flaw
+
+Do not use Sol for routine coding, test execution, formatting, documentation,
+simple debugging, or ordinary review.
+
+## Completion gate
+
+Do not claim completion until:
+
+- Required implementation exists
+- Relevant verification has run
+- Test results are reported honestly
+- Terra reviewer has no unresolved blocking findings
+- Remaining limitations are explicitly documented

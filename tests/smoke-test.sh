@@ -9,7 +9,11 @@ cat > "$TEMP_HOME/fake-bin/agent" <<'EOF'
 #!/usr/bin/env bash
 if [[ "${1:-}" == models ]]; then
   printf '%s\n' gpt-5.6-sol-max gpt-5.6-terra-medium gpt-5.6-luna-low
+  exit 0
 fi
+printf 'ARGS:'
+printf ' <%s>' "$@"
+printf '\n'
 EOF
 chmod +x "$TEMP_HOME/fake-bin/agent"
 : > "$TEMP_HOME/.bashrc"
@@ -19,6 +23,14 @@ HOME="$TEMP_HOME" XDG_CONFIG_HOME="$TEMP_HOME/.config" XDG_STATE_HOME="$TEMP_HOM
 [[ -L "$TEMP_HOME/.local/bin/cursor-st" ]]
 [[ "$(readlink -f "$TEMP_HOME/.local/bin/cursor-st")" == "$ROOT/bin/cursor-st" ]]
 [[ -L "$TEMP_HOME/.cursor/hooks/cursor-st-command-guard.py" ]]
+[[ -L "$TEMP_HOME/.cursor/agents/sol-planner.md" ]]
+[[ -L "$TEMP_HOME/.cursor/agents/luna-worker.md" ]]
+[[ -L "$TEMP_HOME/.cursor/agents/terra-implementer.md" ]]
+[[ -L "$TEMP_HOME/.cursor/agents/terra-reviewer.md" ]]
+[[ -L "$TEMP_HOME/.cursor/rules/model-routing.mdc" ]]
+rg -Fq 'PARENT_MODEL="${CURSOR_LUNA_MODEL:-gpt-5.6-luna-medium}"' "$TEMP_HOME/.local/bin/cursor-st"
+launch_output="$(cd "$TEMP_HOME" && HOME="$TEMP_HOME" PATH="$TEMP_HOME/fake-bin:$PATH" "$TEMP_HOME/.local/bin/cursor-st" --yolo -p test)"
+[[ "$launch_output" == *'<--model> <gpt-5.6-luna-medium> <--yolo> <-p> <test>'* ]]
 for dangerous in 'git -C repo reset --hard' '/usr/bin/git clean -df' 'rm -fr /'; do
   result="$(printf '{"command":"%s"}' "$dangerous" | python3 "$ROOT/cursor/hooks/cursor-st-command-guard.py")"
   [[ "$result" == *'"permission": "deny"'* ]]
