@@ -1,12 +1,15 @@
 # AI CLI dotfiles
 
-This repository is the portable, reviewable source of truth for one Linux/WSL
-Cursor and Codex workflow. It installs workflow instructions, agent roles,
-launchers, a small set of preferences, and shell aliases. It does **not**
-install Cursor or Codex themselves, sign either tool in, or copy private
-machine history into Git.
+This repository sets up a portable Linux/WSL workflow for the official Cursor
+and Codex CLIs. It installs reviewed instructions, role definitions, guarded
+launchers, selected preferences, and shell aliases. It does not install either
+CLI, sign you in, or put credentials, history, sessions, or caches in Git.
 
-The intended hierarchy is:
+## Overview: model workflow
+
+The workflow gives Sol High responsibility for planning and final signoff,
+with Terra as the usual implementation agent and Luna limited to explicitly
+bounded, low-risk support.
 
 ```text
 Sol High: inspect, plan, set acceptance criteria, review the complete diff,
@@ -19,88 +22,149 @@ Sol High: inspect, plan, set acceptance criteria, review the complete diff,
               fundamental review finding
 ```
 
-This is a guided workflow expressed in instructions and role definitions, not
-a deterministic model router. The parent must choose and scope delegation.
-Sol High alone gives final signoff.
+This is a set of instructions and role definitions, not a deterministic model
+router. Sol High must still choose and scope any delegation, and is the only
+role that gives final signoff.
 
-## Read this first: live installation versus this rebuilt checkout
+| Role | Cursor model form | Codex model + reasoning | Responsibility |
+| --- | --- | --- | --- |
+| Sol High parent | `gpt-5.6-sol-high` | `gpt-5.6-sol` + `high` | Planning, acceptance, complete-diff review, final signoff |
+| Terra Medium | `gpt-5.6-terra-medium` | `gpt-5.6-terra` + `medium` | Default ordinary implementation and tests |
+| Luna Medium | `gpt-5.6-luna-medium` | `gpt-5.6-luna` + `medium` | Explicit bounded low-risk work |
+| Terra High reviewer | `gpt-5.6-terra-high` | `gpt-5.6-terra` + `high` | Read-only advisory review |
+| Sol Max advisor | `gpt-5.6-sol-max` | `gpt-5.6-sol` + `max` | Read-only escalation-only advice |
 
-There are currently two checkouts on this machine:
+Cursor uses combined catalog slugs in `cursor-st`. Its portable preferences
+use a base model and a separate reasoning parameter. Codex uses separate
+`model` and `model_reasoning_effort` settings. Before changing a Cursor pin,
+run `agent models` and use an ID available to your signed-in account.
 
-| Location | Status | Ownership |
-| --- | --- | --- |
-| `/home/mahdiosx/ai-cli-dotfiles` | Existing live checkout | Current live `cursor-st` and `codex-st` resolve here. Do not casually delete or overwrite it. |
-| `/home/mahdiosx/projects/ai-cli-dotfiles` | Rebuilt repository | The source documented here. It is not yet the owner of the existing live installation. |
+## Prerequisites
 
-The rebuilt scripts use a relocation-safe version-2 install manifest and a
-source registry under `${XDG_STATE_HOME:-$HOME/.local/state}/ai-cli-dotfiles/`.
-They refuse unsafe or invalid state. That is intentional: a malformed or
-legacy install must not be silently adopted and then removed by an unrelated
-checkout.
+Use Linux or WSL with Bash, Python 3.11 or newer, and Git. Install and sign in
+to the official Cursor CLI (`agent` or `cursor-agent`) if you will use Cursor,
+and the official `codex` executable if you will use Codex. `rg` is needed for
+the smoke test and backup workflow.
 
-For the current old live setup, start with `./doctor.sh`. If it reports invalid
-or unsafe legacy metadata, stop. There is no supported in-place migration from
-that legacy state in this rebuild. Preserve the old checkout and its backups;
-use a separately reviewed migration/cleanup procedure before trying to make
-this checkout live. A fresh installation into a clean home, or an installation
-whose manifest is already valid, is supported.
+Clone your private repository and enter it:
 
-## What belongs in Git
-
-The repository contains only portable, auditable material:
-
-```text
-.
-├── install.sh / uninstall.sh / doctor.sh / backup-current.sh / update-repo.sh
-├── bin/                 # guarded Cursor and Codex launchers
-├── cursor/
-│   ├── agents/          # four Cursor role instructions
-│   ├── rules/           # workflow and safety rules
-│   ├── hooks/           # command guard
-│   ├── cli-config.json  # portable preference allowlist
-│   └── statusline.py
-├── codex/
-│   ├── AGENTS.md        # global Codex workflow instructions
-│   ├── agents/          # native TOML role definitions
-│   ├── config/          # sanitized base and named profile templates
-│   ├── rules/           # reusable Codex rules
-│   └── prompts/         # place for reusable prompt text
-├── shell/               # aliases loaded from .bashrc
-├── lib/                 # install, state, merge, and secret-scan helpers
-├── templates/           # starting points for new local assets
-└── tests/smoke-test.sh  # isolated install/restore safety test
+```bash
+git clone git@github.com:YOUR-ACCOUNT/ai-cli-dotfiles.git
+cd ai-cli-dotfiles
 ```
 
-It deliberately excludes auth, account/team data, login state, sessions,
-model-selection history, plans, telemetry/tracking data, caches, logs,
-SQLite/databases, project trust, notices, migrations, and secret files. The
-backup command also sanitizes Cursor model metadata so stale display labels,
-aliases, context limits, and selection history do not become portable state.
+## Repo-only preflight
 
-## Requirements and safety model
+Before making any changes outside the repository, validate the portable
+content:
 
-Use Linux or WSL with Bash, Python 3 (Python 3.11+ is needed to validate TOML),
-Git for `update-repo.sh`, and the official Cursor CLI (`agent` or
-`cursor-agent`) and/or official `codex` executable already installed and
-logged in as appropriate. `rg` is used by the smoke test and backup workflow.
+```bash
+./doctor.sh --repo-only
+git diff --check
+```
 
-The repository changes only its documented targets and marked `.bashrc`
-blocks. Before replacing a target it makes a timestamped backup. It refuses to
-replace an existing unrelated target unless `--force` is given. Cursor hooks
-and preferences are merged rather than wholesale replaced; existing unknown
-runtime settings, including authentication, remain intact. Codex
-`~/.codex/config.toml` is preserved unless you explicitly ask to replace it.
+This checks script syntax, JSON and TOML, Python compilation, and the secret
+scanner. It does not require an installed setup or a signed-in CLI.
 
-`--full-access` is intentionally separate from normal installation. It writes
-Cursor's unrestricted approval mode and disabled sandbox preference. Use it
-only when unrestricted tool execution is genuinely intended. `codexy` is even
-more powerful: it bypasses Codex approvals and sandboxing, and is appropriate
-only inside an externally sandboxed environment.
+## Dry run, then install
 
-## Exact installation mapping
+Preview first:
 
-Defaults can be redirected with `CURSOR_HOME` and `CODEX_HOME`; state and
-configuration respect `XDG_STATE_HOME` and `XDG_CONFIG_HOME`.
+```bash
+./install.sh --dry-run
+```
+
+The dry run previews shell-file mutations and does not publish install state
+or a backup. When the preview is acceptable, perform the normal symlink
+installation:
+
+```bash
+./install.sh
+source ~/.bashrc
+./doctor.sh
+```
+
+Symlinks are the default, so later reviewed repository changes are reflected
+by the installed portable files. The installer creates timestamped backups
+before changes, merges Cursor hooks and selected preferences rather than
+replacing them wholesale, and preserves an already present Codex
+`config.toml` unless asked to replace it.
+
+### Optional installation choices
+
+| Choice | Command | Effect |
+| --- | --- | --- |
+| Independent files | `./install.sh --copy` | Copy portable assets instead of symlinking them. |
+| Cursor only | `./install.sh --cursor-only` | Install Cursor assets and common aliases while retaining recorded Codex assets. |
+| Codex only | `./install.sh --codex-only` | Install Codex assets and common aliases while retaining recorded Cursor assets. |
+| Replace Codex base config | `./install.sh --replace-config` | Back up then replace `~/.codex/config.toml` with the sanitized template. |
+| Replace a protected target | `./install.sh --force` | Back up and replace an unrecognized or changed target. |
+| Store unrestricted Cursor preferences | `./install.sh --full-access` | Write Cursor unrestricted approvals and disabled sandbox preferences. |
+
+`--cursor-only --codex-only` is invalid. `--full-access` requires Cursor and
+cannot be combined with `--codex-only`; `--replace-config` cannot be combined
+with `--cursor-only`.
+
+`./install.sh --full-access` changes stored Cursor preferences. It is separate
+from choosing `cyolo` for one Cursor invocation: it does not make every
+launch use `--yolo`, and `cyolo` does not store preference changes. Review the
+risk of each choice independently.
+
+## Everyday launchers
+
+Open a new shell after installation, or run `source ~/.bashrc`. Start each
+tool from the project you want to work in:
+
+```bash
+cd ~/projects/example-app
+cagent "Inspect this project and propose a plan."
+codex-st "Implement the accepted plan and run focused tests."
+```
+
+| Command | What it does | Use it when |
+| --- | --- | --- |
+| `cagent` | Runs `cursor-st` without adding Cursor `--yolo`. The wrapper starts the Sol High parent and maintains the stated hierarchy; effective permissions follow stored Cursor preferences. | Standard Cursor work without per-invocation `--yolo`. |
+| `cyolo` | Runs `cursor-st --yolo`, using the same Sol High hierarchy with Cursor `--yolo`. | Only in a trusted project after reviewing the scope. |
+| `codex-st` | Runs Codex with the named `sol-terra-luna` profile and hierarchy, without adding the dangerous bypass flag. | Standard profile-based Codex work. |
+| `codexy` | Runs `codex-st --dangerously-bypass-approvals-and-sandbox`, with the same hierarchy. | Only inside an external sandbox. |
+| `cdx` | Runs the raw official `codex` command. It does not explicitly select the named profile. | When you intentionally need raw Codex behavior. |
+
+`cyolo` and `codexy` change execution permissions, not model quality or the
+orchestration design. The guarded wrappers reject model and configuration
+overrides that would bypass their hierarchy. The raw official commands remain
+available and untouched.
+
+### High-risk launchers
+
+Use these only after reviewing the project and requested scope. `cyolo` adds
+Cursor `--yolo`; `codexy` bypasses Codex approvals and sandboxing. They retain
+the same hierarchy and do not improve model quality or orchestration.
+
+```bash
+cd ~/projects/example-app
+cyolo "Make the reviewed change and run its focused tests."
+codexy "Apply the accepted change and verify it."
+```
+
+Use `cyolo` only in a trusted project. Use `codexy` only inside an external
+sandbox.
+
+Useful checks and project cleanup commands:
+
+```bash
+cursor-st --show-flow
+codex-st --show-flow
+cdoctor
+cursor-st --clean-project
+```
+
+`cursor-st` creates matching managed `.cursor` links in the project it starts
+from, and `--clean-project` removes only those matching links.
+
+## Exact mappings
+
+`CURSOR_HOME` and `CODEX_HOME` can redirect the Cursor and Codex destinations.
+State and configuration paths honor `XDG_STATE_HOME` and `XDG_CONFIG_HOME`.
 
 | Repository source | Installed destination |
 | --- | --- |
@@ -109,7 +173,7 @@ configuration respect `XDG_STATE_HOME` and `XDG_CONFIG_HOME`.
 | `cursor/hooks/cursor-st-command-guard.py` | `~/.cursor/hooks/cursor-st-command-guard.py` |
 | `cursor/statusline.py` | `~/.cursor/statusline.py` |
 | `cursor/hooks.json` | merged into `~/.cursor/hooks.json` |
-| `cursor/cli-config.json` | selected safe fields merged into `~/.cursor/cli-config.json` |
+| `cursor/cli-config.json` | selected portable fields merged into `~/.cursor/cli-config.json` |
 | `bin/cursor-st` | `~/.local/bin/cursor-st` |
 | `codex/AGENTS.md` | `~/.codex/AGENTS.md` |
 | `codex/rules/default.rules` | `~/.codex/rules/default.rules` |
@@ -118,184 +182,71 @@ configuration respect `XDG_STATE_HOME` and `XDG_CONFIG_HOME`.
 | `codex/config/config.toml` | `~/.codex/config.toml`, only if missing or `--replace-config` is used |
 | `bin/codex-st` | `~/.local/bin/codex-st` |
 | `shell/ai-cli-aliases.sh` | `${XDG_CONFIG_HOME:-$HOME/.config}/ai-cli-dotfiles/ai-cli-aliases.sh` |
-| two marked blocks | `~/.bashrc`: ensure `~/.local/bin` is on `PATH`, then source aliases |
+| Managed shell blocks | `~/.bashrc`: add `~/.local/bin` to `PATH` and source the aliases |
 
-By default these are symlinks. `--copy` makes independent copies instead.
-Either form is recorded in the install manifest so that safe uninstall and
-restore can distinguish managed content from user changes.
+## Maintenance and recovery
 
-## Models and delegation
-
-Cursor and Codex describe the same hierarchy differently.
-
-| Role | Cursor model form | Codex model + reasoning | Responsibility |
-| --- | --- | --- | --- |
-| Sol High parent | `gpt-5.6-sol-high` | `gpt-5.6-sol` + `high` | Planning, acceptance, complete-diff review, final signoff |
-| Terra Medium | `gpt-5.6-terra-medium` | `gpt-5.6-terra` + `medium` | Default ordinary implementation and tests |
-| Luna Medium | `gpt-5.6-luna-medium` | `gpt-5.6-luna` + `medium` | Explicit bounded low-risk work |
-| Terra High reviewer | `gpt-5.6-terra-high` | `gpt-5.6-terra` + `high` | Read-only advisory review |
-| Sol Max advisor | `gpt-5.6-sol-max` | `gpt-5.6-sol` + `max` | Read-only, escalation-only advice |
-
-Cursor uses combined catalog slugs in `cursor-st`, while its portable
-`cli-config.json` stores the base model plus a separate `reasoning` parameter.
-Codex likewise uses separate `model` and `model_reasoning_effort` settings.
-That difference is deliberate; do not paste Cursor's combined slugs into
-Codex TOML. Before changing Cursor model pins, run `agent models` and use the
-exact model IDs available to the signed-in account.
-
-`cursor-st` always launches the Sol High parent and rejects caller-supplied
-`--model`. It leaves Cursor's `exploreSubagentModel` as `default`. Codex's
-named `sol-terra-luna` profile makes an **unnamed** Codex subagent default to
-Terra Medium; its four native role TOMLs define the other roles. Neither fact
-removes the parent's responsibility to follow the role instructions and choose
-the correct delegation.
-
-## Install
-
-From the rebuilt repository, after the live-state warning above has been
-resolved:
+Use these commands from the repository:
 
 ```bash
-./install.sh
-./doctor.sh
-source ~/.bashrc
+./doctor.sh --repo-only
+./tests/smoke-test.sh
+git diff --check
+./uninstall.sh --dry-run
+./uninstall.sh --restore
 ```
 
-`install.sh` supports every option below.
+`./doctor.sh` without `--repo-only` additionally validates a recognized
+managed installation. `uninstall.sh` removes only manifest-recognized,
+unchanged managed files; `--restore` restores the most recent completed
+backup. Review `--force` carefully because it permits replacement or removal
+of protected targets.
 
-| Command or flag | Meaning |
-| --- | --- |
-| `./install.sh` | Install Cursor and Codex portable assets as symlinks. |
-| `--symlink` | Explicit default: link installed assets to this checkout. |
-| `--copy` | Copy assets instead of linking them. |
-| `--cursor-only` | Install Cursor assets plus the common aliases; retain recorded Codex assets. |
-| `--codex-only` | Install Codex assets plus the common aliases; retain recorded Cursor assets. |
-| `--full-access` | When Cursor is included, write unrestricted Cursor approvals and disabled sandbox. |
-| `--replace-config` | When Codex is included, back up then replace `~/.codex/config.toml` with the sanitized template. |
-| `--force` | Back up and replace an existing target that is not recognized as matching managed content. |
-| `--dry-run` | Preview shell-file mutations; no install state or backup is published. |
-| `-h` / `--help` | Show usage. |
-
-`--cursor-only --codex-only` is invalid. So are `--full-access` with
-`--codex-only`, and `--replace-config` with `--cursor-only`. A normal install
-does not enable full access and does not replace an existing Codex config.
-
-## Everyday commands
-
-After opening a new shell (or sourcing `~/.bashrc`):
-
-| Command | What it does |
-| --- | --- |
-| `cyolo` | Run `cursor-st --yolo`; the Cursor wrapper sets up per-project managed links and uses Sol High. |
-| `cagent` | Run `cursor-st` without adding Cursor's `--yolo`. |
-| `cdoctor` | Run the Cursor workflow check. |
-| `cdx` | Run the official raw `codex` command. |
-| `codex-st` | Run Codex with the protected `sol-terra-luna` profile. |
-| `codexy` | Run `codex-st --dangerously-bypass-approvals-and-sandbox`; use only in an external sandbox. |
-| `cursor-st --show-flow` / `codex-st --show-flow` | Print the intended roles and flow. |
-| `cursor-st --clean-project` | Remove only matching Cursor project links created by the wrapper. |
-
-The wrappers reject model/profile/config/provider overrides that would bypass
-their hierarchy. The official `agent`/`cursor-agent` and `codex` commands stay
-untouched.
-
-## Back up, diagnose, update, uninstall, and restore
-
-Before capturing a known-good live Cursor configuration:
+To capture a reviewed portable Cursor configuration, run:
 
 ```bash
 ./backup-current.sh
 ```
 
-This requires every listed portable Cursor source to exist and writes them
-into the working tree after a temporary staging scan. To also capture the
-portable Codex framework and a sanitized Codex config, use:
-
-```bash
-./backup-current.sh --include-codex
-```
-
-It has only `--include-codex`, `-h`, and `--help`; it does not have a dry-run.
-Always inspect the resulting Git diff before committing.
-
-For checks:
-
-```bash
-./doctor.sh --repo-only   # syntax, JSON, TOML, Python compile, secret scan
-./doctor.sh               # also validate a recognized installed setup
-./tests/smoke-test.sh     # isolated install, upgrade, restore, and safety tests
-git diff --check
-```
-
-For an intentional capture, validation, commit, and optional private push:
+Add `--include-codex` to capture the portable Codex framework and a sanitized
+Codex configuration. Inspect the Git diff before committing. For an
+intentional capture, validation, commit, and optional private push:
 
 ```bash
 ./update-repo.sh --message "Describe the reviewed change"
 ./update-repo.sh --message "Describe the reviewed change" --include-codex --push
 ```
 
-`--message` is required. `--include-codex` passes through to the backup step;
-`--push` verifies that the GitHub remote is private before pushing. This script
-stages only the documented repository paths, but it can commit already changed
-portable files, so review the diff first.
+## Customization
 
-To remove managed assets:
+Make changes in this repository, not in an installed copy. Keep
+machine-specific paths, authentication data, sessions, tokens, and caches out
+of the repository. Preserve the routing and safety rules unless you have
+reviewed a deliberate policy change.
 
-```bash
-./uninstall.sh --dry-run
-./uninstall.sh --restore
-```
+For Cursor, use the provided Markdown agent and rule structure. For Codex,
+use native TOML agent files; do not copy Cursor agents into `~/.codex`. After
+any change, run the repo-only doctor, smoke test, and `git diff --check`, then
+review the complete diff before installing.
 
-`uninstall.sh` supports `--dry-run`, `--force`, `--restore`, `-h`, and
-`--help`. Without `--restore`, it asks interactively whether to restore the
-latest completed backup when stdin is a terminal. It removes only manifest
-recognized, unchanged managed files. A changed file or changed marked
-`.bashrc` block is preserved; use `--force` only after reviewing what will be
-overwritten or removed. `--restore` restores the most recent completed backup;
-an interrupted install's incomplete backup is deliberately ignored.
-
-## Customization without losing the safety boundary
-
-1. Make a small change in this repository, not directly in a live installed
-   copy.
-2. Keep machine-specific paths, auth, sessions, tokens, and caches out of the
-   change.
-3. For Cursor, use the supplied agent and rule templates and preserve the
-   current model-routing safety rules. For Codex, use native TOML agent files;
-   do not transplant Cursor Markdown agents into `~/.codex`.
-4. Validate with `./doctor.sh --repo-only`, `./tests/smoke-test.sh`, and
-   `git diff --check`.
-5. Review the complete diff, then install from the intended checkout. Use
-   `--replace-config`, `--force`, or `--full-access` only when that exact
-   behavior was reviewed.
-
-## Troubleshooting
+## Troubleshooting and security
 
 | Symptom | What to do |
 | --- | --- |
-| `Cursor CLI not found` | Install the official CLI so `agent` or `cursor-agent` is on `PATH`. |
-| `Codex CLI not found` | Install the official `codex` executable and ensure it is on `PATH`. |
-| `Cannot use this model` | Run `agent models`; use the exact current Cursor catalog ID. Do not use bracketed effort syntax in a Cursor slug. |
-| Wrapper refuses `--model`, `--profile`, or config overrides | Expected. Run the raw official command when you intentionally need a different configuration, or change this repository through review. |
-| Installer refuses an existing target | It protects an unmanaged or changed file. Inspect it, then either preserve it, choose a new target/home, or use `--force` after backup. |
-| Existing Codex configuration did not change | Expected. Use `--replace-config` only if replacing it is truly intended. |
-| Doctor says manifest/state is invalid or unsafe | Stop. Do not force reinstall or uninstall. Preserve the old checkout/backups and use a separately reviewed migration. |
-| Full access is missing | Normal install omits those settings. Re-run the Cursor installation with `--full-access` only if the risk is acceptable. |
-| Project has stale Cursor global links | Run `cursor-st --clean-project` from that project, then launch through `cursor-st` again if needed. |
+| Cursor CLI not found | Install the official CLI so `agent` or `cursor-agent` is on `PATH`. |
+| Codex CLI not found | Install the official `codex` executable and ensure it is on `PATH`. |
+| Cursor cannot use a model | Run `agent models` and use an available catalog ID. |
+| A wrapper rejects `--model`, `--profile`, or configuration overrides | Expected: use the raw official command for a deliberate different setup, or change this repository through review. |
+| Installer refuses a target | It protects an unmanaged or changed file. Inspect it, preserve it, choose another destination, or use `--force` only after backup and review. |
+| Codex base configuration did not change | Expected unless it was missing or you used `--replace-config`. |
+| Full access is missing | Normal installation omits it. Re-run the Cursor installation with `--full-access` only after accepting the risk. |
+| Project links are stale | Run `cursor-st --clean-project` there, then launch through `cursor-st` again if needed. |
 
-## Secret policy
+Never commit credentials, authentication JSON, private keys, environment
+files, sessions, logs, model history, or local databases. The repository's
+scanner is a guardrail, not permission to commit sensitive material. Redact
+examples and inspect `git diff` before every commit or push.
 
-Never commit credentials, auth JSON, private keys, environment files, sessions,
-logs, model history, or local database files. `.gitignore` blocks common forms,
-and `python3 lib/manage.py scan .` is run by the doctor and update paths, but
-the scan is a guardrail rather than permission to commit sensitive material.
-Redact examples and inspect `git diff` before every commit or push.
-
-## Verification standard
-
-Repository validation proves that scripts and portable configuration are
-consistent in isolated test homes. It does not prove that the official Cursor
-or Codex backend accepts a model for every account, that a user is logged in,
-or that unrestricted execution is safe on a particular machine. Run the
-appropriate official CLI checks after installation, and treat live backend and
-full-access use as a separate acceptance decision.
+Repository checks prove the portable scripts and configuration are internally
+consistent. They do not prove account access, provider acceptance of every
+model, or that unrestricted execution is safe in a particular environment.
