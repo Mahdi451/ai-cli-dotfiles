@@ -1,0 +1,10 @@
+---
+description: Prefer one-line terminal commands for copy-paste use
+alwaysApply: true
+---
+
+# Command Formatting
+
+- When suggesting terminal, shell, or PowerShell commands, prefer single-line commands that are easy to copy and paste.
+- If a multi-line version is clearer, also provide a one-line version first.
+- Keep command explanations separate from the copy-paste command.

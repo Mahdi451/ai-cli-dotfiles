@@ -51,4 +51,5 @@ models_cache.json
 
 # Only the documented portable Codex framework belongs here.
 codex/config/*.toml
-!codex/config/.gitkeep
+!codex/config/config.toml
+!codex/config/sol-terra-luna.config.toml

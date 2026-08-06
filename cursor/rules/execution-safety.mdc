@@ -1,0 +1,10 @@
+---
+description: Guardrails for agent execution
+alwaysApply: true
+---
+
+- Before executing commands, state the intent briefly when the action is nontrivial.
+- Do not change secrets, CI, deployment, or infrastructure files unless explicitly requested.
+- Do not modify tests to make failures disappear unless the task explicitly asks for test updates.
+- If a command fails, diagnose the failure before retrying with different commands.
+- For debugging, gather evidence first, then propose the smallest fix.

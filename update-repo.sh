@@ -18,16 +18,30 @@ done
 
 ROOT="$(cd -- "$(dirname -- "$0")" && pwd -P)"
 git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1 || { printf '%s\n' 'Initialize Git before updating.' >&2; exit 1; }
+managed_paths=(.gitignore LICENSE README.md install.sh uninstall.sh backup-current.sh update-repo.sh doctor.sh bin cursor codex lib shell templates tests)
+is_managed_path() {
+  local path="$1" root
+  for root in "${managed_paths[@]}"; do
+    [[ "$path" == "$root" || "$path" == "$root/"* ]] && return 0
+  done
+  return 1
+}
+while IFS= read -r -d '' staged_path; do
+  is_managed_path "$staged_path" || {
+    printf 'Refusing to publish: unrelated pre-staged path: %s\n' "$staged_path" >&2
+    exit 1
+  }
+done < <(git -C "$ROOT" diff --cached --no-renames --name-only -z)
 args=()
 [[ "$INCLUDE_CODEX" == true ]] && args+=(--include-codex)
 "$ROOT/backup-current.sh" "${args[@]}"
 python3 "$ROOT/lib/manage.py" scan "$ROOT"
-bash -n "$ROOT/install.sh" "$ROOT/uninstall.sh" "$ROOT/backup-current.sh" "$ROOT/update-repo.sh" "$ROOT/doctor.sh" "$ROOT/bin/cursor-st" "$ROOT/shell/ai-cli-aliases.sh"
+bash -n "$ROOT/install.sh" "$ROOT/uninstall.sh" "$ROOT/backup-current.sh" "$ROOT/update-repo.sh" "$ROOT/doctor.sh" "$ROOT/bin/cursor-st" "$ROOT/bin/codex-st" "$ROOT/shell/ai-cli-aliases.sh"
 python3 "$ROOT/lib/manage.py" json-validate "$ROOT/cursor/hooks.json"
+for config in "$ROOT"/codex/config/*.toml "$ROOT"/codex/agents/*.toml; do python3 "$ROOT/lib/manage.py" toml-validate "$config"; done
 "$ROOT/tests/smoke-test.sh"
 git -C "$ROOT" diff --check
 git -C "$ROOT" diff
-managed_paths=(.gitignore LICENSE README.md install.sh uninstall.sh backup-current.sh update-repo.sh doctor.sh bin cursor codex lib shell templates tests)
 git -C "$ROOT" add -- "${managed_paths[@]}"
 staged="$(git -C "$ROOT" diff --cached --name-only)"
 [[ -n "$staged" ]] || { printf '%s\n' 'No changes to commit.'; exit 0; }

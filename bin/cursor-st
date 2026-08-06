@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-WORKFLOW_VERSION='4.0.0'
-PARENT_MODEL="${CURSOR_LUNA_MODEL:-gpt-5.6-luna-medium}"
-SOL_MODEL="${CURSOR_SOL_MODEL:-gpt-5.6-sol-high}"
+WORKFLOW_VERSION='5.0.0'
+PARENT_MODEL="${CURSOR_SOL_HIGH_MODEL:-gpt-5.6-sol-high}"
+SOL_MAX_MODEL="${CURSOR_SOL_MAX_MODEL:-gpt-5.6-sol-max}"
 TERRA_MODEL="${CURSOR_TERRA_MODEL:-gpt-5.6-terra-medium}"
 TERRA_REVIEW_MODEL="${CURSOR_TERRA_REVIEW_MODEL:-gpt-5.6-terra-high}"
 CURSOR_HOME="${CURSOR_HOME:-$HOME/.cursor}"
@@ -137,16 +137,19 @@ clean_project() {
 show_flow() {
   cat <<EOF
 Workflow version:   $WORKFLOW_VERSION
-Luna parent:        $PARENT_MODEL
-Sol planner:        $SOL_MODEL (read-only)
+Sol High parent:    $PARENT_MODEL
+Sol Max advisor:    $SOL_MAX_MODEL (read-only escalation only)
 Luna worker:        gpt-5.6-luna-medium
 Terra implementer:  $TERRA_MODEL
-Terra reviewer:     $TERRA_REVIEW_MODEL (read-only)
+Terra reviewer:     $TERRA_REVIEW_MODEL (read-only advisory)
 
 Flow:
-  trivial task    -> Luna parent
-  nontrivial task -> Sol plan -> Luna/Terra implementation
-                  -> verification -> Terra review -> routed fixes
+  Sol High inspect/plan/acceptance -> Terra core implementation/tests
+  -> Luna bounded support -> Terra integration/routine review
+  -> Sol High complete-diff review and final signoff
+
+  Sol Max is read-only and escalates only for architecture/security risk,
+  unusually difficult reasoning, stalled debugging, or fundamental findings.
 EOF
 }
 
@@ -173,10 +176,13 @@ case "${1:-}" in
 esac
 
 for arg in "$@"; do
-  if [[ "$arg" == --model || "$arg" == -m ]]; then
-    printf 'cursor-st manages the Luna parent model; do not pass --model/-m.\n' >&2
-    exit 2
-  fi
+  [[ "$arg" == -- ]] && break
+  case "$arg" in
+    --model|--model=*|-m|-m*)
+      printf 'cursor-st manages the Sol High parent model; do not pass --model/-m.\n' >&2
+      exit 2
+      ;;
+  esac
 done
 
 setup_project

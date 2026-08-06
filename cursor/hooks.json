@@ -3,7 +3,7 @@
   "hooks": {
     "beforeShellExecution": [
       {
-        "command": "python3 __HOME__/.cursor/hooks/cursor-st-command-guard.py"
+        "command": "python3 __CURSOR_HOME__/hooks/cursor-st-command-guard.py"
       }
     ]
   }

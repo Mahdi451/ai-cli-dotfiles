@@ -1,0 +1,26 @@
+model = "gpt-5.6-sol"
+model_reasoning_effort = "high"
+personality = "pragmatic"
+plan_mode_reasoning_effort = "xhigh"
+instructions_file = "~/.codex/AGENTS.md"
+approvals_reviewer = "user"
+
+[features]
+unified_exec = true
+goals = true
+memories = true
+prevent_idle_sleep = true
+multi_agent = true
+
+[agents]
+enabled = true
+default_subagent_model = "gpt-5.6-terra"
+default_subagent_reasoning_effort = "medium"
+
+[tui]
+status_line = ["model-with-reasoning", "current-dir", "context-used", "weekly-limit", "task-progress", "permissions"]
+theme = "sublime-snazzy"
+status_line_use_colors = true
+
+[plugins."github@openai-curated"]
+enabled = true

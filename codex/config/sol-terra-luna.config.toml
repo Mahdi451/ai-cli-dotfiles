@@ -1,0 +1,11 @@
+model = "gpt-5.6-sol"
+model_reasoning_effort = "high"
+instructions_file = "~/.codex/AGENTS.md"
+
+[features]
+multi_agent = true
+
+[agents]
+enabled = true
+default_subagent_model = "gpt-5.6-terra"
+default_subagent_reasoning_effort = "medium"

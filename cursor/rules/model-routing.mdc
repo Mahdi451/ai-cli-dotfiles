@@ -4,11 +4,13 @@ alwaysApply: true
 
 # Model Routing Workflow
 
-The parent agent is an orchestrator. The preferred parent model is GPT-5.6 Luna.
+The Sol High parent leads ordinary repository inspection, planning, acceptance
+criteria, integrated-diff review, and final signoff. It may directly implement
+hard work when appropriate.
 
 ## Classify the task
 
-A task is trivial when all of the following are true:
+A bounded Luna task is low-risk only when all of the following are true:
 
 - The intended change is obvious
 - It is localized and low-risk
@@ -16,37 +18,33 @@ A task is trivial when all of the following are true:
   concurrency, security boundaries, or core behavior
 - Acceptance can be verified with a focused command or inspection
 
-The Luna parent may perform trivial work directly.
+Luna handles only explicit bounded repository search, boilerplate, docs,
+fixtures/mocks/schemas, established-pattern basic components, mechanical
+changes, repetitive tests/checks, formatting, and reporting.
 
-A task is nontrivial when it involves ambiguity, multiple modules, unfamiliar
-code, architectural choices, external APIs, data models, security, concurrency,
-migration, substantial debugging, or broad behavioral changes.
+Terra Medium is the default primary implementer for roughly 70–80% of ordinary
+implementation, tests, routine debugging, APIs, components, CLIs, backend
+logic, and integration. This is a routing target, not a quota.
 
-## Required workflow for nontrivial tasks
+## Canonical workflow
 
-1. Before any file edits, invoke the sol-planner subagent.
-2. Treat the resulting plan as the implementation contract.
-3. Delegate each [LUNA] task to luna-worker.
-4. Delegate each [TERRA] task to terra-implementer.
-5. Do not run agents concurrently when their write scopes overlap.
-6. After implementation, run appropriate tests and verification.
-7. Invoke terra-reviewer on the complete final diff.
-8. Send straightforward review fixes to luna-worker.
-9. Send complex review fixes to terra-implementer.
-10. Repeat the Terra review after blocking or important fixes.
+1. Sol High inspects the repository, plans, and defines acceptance criteria.
+2. Terra implements core work and tests.
+3. Luna provides only explicit bounded support.
+4. Terra integrates and performs routine/advisory review, especially for Luna work.
+5. Sol High reviews the complete integrated diff and alone gives final signoff.
 
-## Sol escalation conditions
+Do not run agents concurrently when their write scopes overlap.
 
-Invoke sol-planner again only when:
+## Sol Max escalation advisor
 
-- Requirements materially change
-- The discovered architecture contradicts the plan
-- A public interface or data model must change unexpectedly
-- Two implementation or repair attempts fail
-- The reviewer identifies a fundamental design flaw
+`sol-planner` is a read-only Sol Max advisor, not a mandatory stage. Invoke it
+only for architecture or security risk, unusually difficult reasoning, stalled
+debugging, or a fundamental review finding. It may return `[SOL]`, `[TERRA]`,
+and `[LUNA]` ownership guidance to the Sol High parent.
 
-Do not use Sol for routine coding, test execution, formatting, documentation,
-simple debugging, or ordinary review.
+Do not use Sol Max for routine coding, test execution, formatting,
+documentation, simple debugging, or ordinary review.
 
 ## Completion gate
 
@@ -55,5 +53,6 @@ Do not claim completion until:
 - Required implementation exists
 - Relevant verification has run
 - Test results are reported honestly
-- Terra reviewer has no unresolved blocking findings
+- Terra routine-review findings are addressed or explicitly documented
+- Sol High has reviewed the complete integrated diff and given final signoff
 - Remaining limitations are explicitly documented

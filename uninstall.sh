@@ -23,62 +23,71 @@ source "$ROOT/lib/common.sh"
 MANIFEST="$(manifest_path)"
 CURSOR_HOME="${CURSOR_HOME:-$HOME/.cursor}"
 BACKUP_DIR="$(backup_root)/$(timestamp)"
-
-if [[ -f "$MANIFEST" ]]; then
-  while IFS=$'\t' read -r mode source target; do
-    [[ -n "$source" && -n "$target" ]] || continue
-    backup_existing "$target" "$BACKUP_DIR"
-    remove_managed_item "$source" "$target" "$mode" "$FORCE"
-  done < "$MANIFEST"
-else
-  note "No install manifest found; file targets will be preserved."
-fi
-
-for target in "$CURSOR_HOME/hooks.json" "$HOME/.bashrc"; do backup_existing "$target" "$BACKUP_DIR"; done
-if [[ "$DRY_RUN" == true ]]; then
-  note "dry-run: remove managed Cursor hook and .bashrc blocks"
-else
-  python3 "$ROOT/lib/manage.py" remove-hooks --destination "$CURSOR_HOME/hooks.json" --template "$ROOT/cursor/hooks.json" --home "$HOME"
-fi
-remove_managed_block "$HOME/.bashrc" "local-bin"
-remove_managed_block "$HOME/.bashrc" "aliases"
-[[ "$DRY_RUN" == true ]] || rm -f -- "$MANIFEST"
-
-latest_backup() {
-  local candidate
-  for candidate in "$(backup_root)"/*; do
-    [[ -f "$candidate/.complete" ]] && printf '%s\n' "$candidate"
-  done | sort | tail -n 1
-}
-
-restore_backup() {
-  local backup="$1" source target
-  [[ -n "$backup" ]] || { note "No completed backup is available."; return 0; }
-  note "Restoring backup: $backup"
-  while IFS= read -r source; do
-    target="/${source#"$backup/"}"
-    if [[ -e "$target" || -L "$target" ]] && [[ "$FORCE" != true ]]; then
-      note "preserving existing target during restore: $target (use --force to replace)"
-      continue
-    fi
-    ensure_dir "$(dirname -- "$target")"
-    if [[ "$DRY_RUN" == true ]]; then
-      note "dry-run: restore $target"
-    else
-      cp -a -- "$source" "$target"
-    fi
-  done < <(rg --files "$backup" -g '!.complete')
-}
-
+CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
+RESTORE_CANDIDATE=""
+STATE_LOCKED=false
+operation_lock
+trap release_operation_lock EXIT
 if [[ "$RESTORE" == false && -t 0 ]]; then
   read -r -p "Restore the most recent completed backup? [y/N] " answer
   [[ "$answer" =~ ^[Yy]$ ]] && RESTORE=true
 fi
-if [[ "$RESTORE" == true ]]; then restore_backup "$(latest_backup)"; fi
-
-if [[ "$DRY_RUN" == false ]]; then
-  mkdir -p -- "$BACKUP_DIR"
-  chmod 700 "$BACKUP_DIR"
-  : > "$BACKUP_DIR/.complete"
+if [[ "$RESTORE" == true ]]; then
+  RESTORE_CANDIDATE="$(state_command latest --backup-root "$(backup_root)")"
 fi
+if [[ "$DRY_RUN" == false ]]; then
+  state_command backup-init --backup-root "$(backup_root)" --backup-dir "$BACKUP_DIR"
+fi
+
+MANIFEST_TRUSTED=false
+if trusted_manifest; then
+  MANIFEST_TRUSTED=true
+  while IFS=$'\t' read -r mode root_id asset target source; do
+    if [[ "$mode" == copy && ! -f "$source" && -f "$ROOT/$asset" ]]; then
+      source="$ROOT/$asset"
+    fi
+    backup_existing "$target" "$BACKUP_DIR"
+    remove_managed_item "$source" "$target" "$mode" "$FORCE"
+  done < <(state_command manifest)
+elif [[ -e "$MANIFEST" || -L "$MANIFEST" ]]; then
+  note "Invalid install manifest; managed file targets will be preserved. Reinstall to replace it safely."
+else
+  note "No install manifest found; file targets will be preserved."
+fi
+
+if [[ -L "$CURSOR_HOME/hooks.json" ]]; then
+  if [[ "$FORCE" == true ]]; then
+    backup_existing "$CURSOR_HOME/hooks.json" "$BACKUP_DIR"
+    run rm -f -- "$CURSOR_HOME/hooks.json"
+  else
+    note "preserving hooks.json symlink: $CURSOR_HOME/hooks.json (use --force to back up and unlink)"
+  fi
+elif [[ -e "$CURSOR_HOME/hooks.json" ]]; then
+  backup_existing "$CURSOR_HOME/hooks.json" "$BACKUP_DIR"
+fi
+backup_existing "$HOME/.bashrc" "$BACKUP_DIR"
+if [[ "$DRY_RUN" == true ]]; then
+  note "dry-run: remove managed Cursor hook and .bashrc blocks"
+elif [[ ! -L "$CURSOR_HOME/hooks.json" ]]; then
+  python3 "$ROOT/lib/manage.py" remove-hooks --destination "$CURSOR_HOME/hooks.json" --template "$ROOT/cursor/hooks.json" --cursor-home "$CURSOR_HOME"
+fi
+remove_managed_block "$HOME/.bashrc" "local-bin" 'case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac' "$FORCE"
+remove_managed_block "$HOME/.bashrc" "aliases" 'source "${XDG_CONFIG_HOME:-$HOME/.config}/ai-cli-dotfiles/ai-cli-aliases.sh"' "$FORCE"
+if [[ "$DRY_RUN" == false && "$MANIFEST_TRUSTED" == true ]]; then
+  rm -f -- "$MANIFEST"
+  rm -f -- "$(source_registry_path)"
+fi
+
+restore_backup() {
+  local backup="$1"
+  [[ -n "$backup" ]] || { note "No completed backup is available."; return 0; }
+  note "Restoring backup: $backup"
+  restore_args=(restore --backup-root "$(backup_root)" --backup "$backup")
+  [[ "$FORCE" == true ]] && restore_args+=(--force)
+  [[ "$DRY_RUN" == true ]] && restore_args+=(--dry-run)
+  state_command "${restore_args[@]}"
+}
+
+if [[ "$RESTORE" == true ]]; then restore_backup "$RESTORE_CANDIDATE"; fi
+[[ "$DRY_RUN" == true ]] || state_command backup-complete --backup-root "$(backup_root)" --backup-dir "$BACKUP_DIR"
 note "Uninstall complete. Cursor and Codex official binaries were not changed."

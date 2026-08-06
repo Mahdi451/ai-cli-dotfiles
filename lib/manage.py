@@ -6,7 +6,10 @@ import argparse
 import json
 import os
 import re
+import shlex
+import stat
 import sys
+import tempfile
 from pathlib import Path
 
 FORBIDDEN_NAMES = {
@@ -68,29 +71,102 @@ def validate_json(path: str) -> int:
     return 0
 
 
-def managed_commands(template: dict, home: str) -> dict:
+def validate_toml(path: str) -> int:
+    try:
+        import tomllib
+    except ModuleNotFoundError:
+        print(
+            "TOML validation requires Python 3.11+; install a newer Python "
+            "or validate this file with another TOML parser.",
+            file=sys.stderr,
+        )
+        return 1
+    try:
+        with open(path, "rb") as handle:
+            tomllib.load(handle)
+    except (OSError, tomllib.TOMLDecodeError) as exc:
+        print(f"invalid TOML: {path}: {exc}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def render_managed_hooks(template: dict, cursor_home: str) -> dict:
     result = json.loads(json.dumps(template))
     for entries in result.get("hooks", {}).values():
         if not isinstance(entries, list):
             continue
         for entry in entries:
             if isinstance(entry, dict) and isinstance(entry.get("command"), str):
-                entry["command"] = entry["command"].replace("__HOME__", home)
+                entry["command"] = entry["command"].replace("__CURSOR_HOME__", shlex.quote(cursor_home))
     return result
 
 
-def merge_hooks(destination: str, template_path: str, home: str) -> int:
+def load_hook_template(template_path: str, action: str) -> dict | None:
+    try:
+        template = json.loads(Path(template_path).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"cannot {action} hooks: {exc}", file=sys.stderr)
+        return None
+    if not isinstance(template, dict) or not isinstance(template.get("hooks"), dict):
+        print(f"cannot {action} hooks: template must be a JSON object with a hooks object", file=sys.stderr)
+        return None
+    return template
+
+
+def atomic_write_json(destination_path: Path, content: dict, action: str) -> int:
+    temporary_path: str | None = None
+    try:
+        destination_path.parent.mkdir(parents=True, exist_ok=True)
+        mode = (
+            stat.S_IMODE(destination_path.stat().st_mode)
+            if destination_path.exists()
+            else 0o600
+        )
+        descriptor, temporary_path = tempfile.mkstemp(
+            prefix=f".{destination_path.name}.",
+            suffix=".tmp",
+            dir=destination_path.parent,
+        )
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            os.fchmod(handle.fileno(), mode)
+            try:
+                json.dump(content, handle, indent=2)
+                handle.write("\n")
+                handle.flush()
+                os.fsync(handle.fileno())
+            except BaseException:
+                raise
+        os.replace(temporary_path, destination_path)
+        temporary_path = None
+        return 0
+    except OSError as exc:
+        print(f"cannot {action} hooks: {exc}", file=sys.stderr)
+        return 1
+    finally:
+        if temporary_path is not None:
+            try:
+                os.unlink(temporary_path)
+            except FileNotFoundError:
+                pass
+
+
+def merge_hooks(destination: str, template_path: str, cursor_home: str) -> int:
     destination_path = Path(destination)
+    if destination_path.is_symlink():
+        print("cannot merge hooks: refusing to replace destination symlink", file=sys.stderr)
+        return 1
     try:
         current = json.loads(destination_path.read_text(encoding="utf-8")) if destination_path.exists() else {"version": 1, "hooks": {}}
-        template = json.loads(Path(template_path).read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         print(f"cannot merge hooks: {exc}", file=sys.stderr)
         return 1
     if not isinstance(current, dict) or not isinstance(current.get("hooks", {}), dict):
         print("cannot merge hooks: destination must be a JSON object with a hooks object", file=sys.stderr)
         return 1
-    template = managed_commands(template, home)
+    template = load_hook_template(template_path, "merge")
+    if template is None:
+        return 1
+    template = render_managed_hooks(template, cursor_home)
     hooks = current.setdefault("hooks", {})
     hooks.setdefault("beforeShellExecution", [])
     if not isinstance(hooks["beforeShellExecution"], list):
@@ -105,38 +181,136 @@ def merge_hooks(destination: str, template_path: str, home: str) -> int:
             print(f"cannot merge hooks: destination {event} must be an array", file=sys.stderr)
             return 1
         for entry in entries:
-            if entry not in existing:
-                existing.append(entry)
+            existing[:] = [current_entry for current_entry in existing if current_entry != entry]
+            existing.append(entry)
     current.setdefault("version", 1)
-    destination_path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = destination_path.with_suffix(destination_path.suffix + ".tmp")
-    temporary.write_text(json.dumps(current, indent=2) + "\n", encoding="utf-8")
-    os.replace(temporary, destination_path)
-    return 0
+    return atomic_write_json(destination_path, current, "merge")
 
 
-def remove_hooks(destination: str, template_path: str, home: str) -> int:
+def remove_hooks(destination: str, template_path: str, cursor_home: str) -> int:
     destination_path = Path(destination)
+    if destination_path.is_symlink():
+        print("cannot remove managed hooks: refusing to replace destination symlink", file=sys.stderr)
+        return 1
     if not destination_path.exists():
         return 0
     try:
         current = json.loads(destination_path.read_text(encoding="utf-8"))
-        template = managed_commands(json.loads(Path(template_path).read_text(encoding="utf-8")), home)
     except (OSError, json.JSONDecodeError) as exc:
         print(f"cannot remove managed hooks: {exc}", file=sys.stderr)
         return 1
     if not isinstance(current, dict) or not isinstance(current.get("hooks", {}), dict):
         print("cannot remove managed hooks: invalid destination", file=sys.stderr)
         return 1
+    template = load_hook_template(template_path, "remove managed")
+    if template is None:
+        return 1
+    template = render_managed_hooks(template, cursor_home)
     for event, entries in template.get("hooks", {}).items():
         existing = current["hooks"].get(event)
         if isinstance(existing, list):
             current["hooks"][event] = [entry for entry in existing if entry not in entries]
             if not current["hooks"][event]:
                 del current["hooks"][event]
-    temporary = destination_path.with_suffix(destination_path.suffix + ".tmp")
-    temporary.write_text(json.dumps(current, indent=2) + "\n", encoding="utf-8")
-    os.replace(temporary, destination_path)
+    return atomic_write_json(destination_path, current, "remove managed")
+
+
+def validate_hooks(destination: str, template_path: str, cursor_home: str) -> int:
+    destination_path = Path(destination)
+    try:
+        current = json.loads(destination_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"invalid managed hooks: {exc}", file=sys.stderr)
+        return 1
+    if not isinstance(current, dict) or not isinstance(current.get("hooks"), dict):
+        print("invalid managed hooks: destination must be a JSON object with a hooks object", file=sys.stderr)
+        return 1
+    template = load_hook_template(template_path, "validate managed")
+    if template is None:
+        return 1
+    for event, entries in render_managed_hooks(template, cursor_home).get("hooks", {}).items():
+        existing = current["hooks"].get(event)
+        if not isinstance(entries, list) or not isinstance(existing, list):
+            print(f"invalid managed hooks: missing managed event {event}", file=sys.stderr)
+            return 1
+        for entry in entries:
+            if existing.count(entry) != 1:
+                print(f"invalid managed hooks: managed entry count in {event} is not exactly one", file=sys.stderr)
+                return 1
+    return 0
+
+
+def merge_cursor_config(destination: str, template_path: str, cursor_home: str, full_access: bool) -> int:
+    """Merge only documented portable preferences; never import runtime state."""
+    path = Path(destination)
+    if path.is_symlink():
+        print("cannot merge Cursor config: refusing to replace destination symlink", file=sys.stderr)
+        return 1
+    try:
+        current = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+        template = json.loads(Path(template_path).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"cannot merge Cursor config: {exc}", file=sys.stderr)
+        return 1
+    if not isinstance(current, dict) or not isinstance(template, dict):
+        print("cannot merge Cursor config: both files must contain objects", file=sys.stderr)
+        return 1
+    allow = ("version", "permissions", "editor", "display", "notifications", "hints", "modelSlashCommands", "rewind", "exploreSubagentModel", "autoAcceptWebSearch", "network", "attribution", "statusLine", "model", "selectedModel")
+    for key in allow:
+        if key in template:
+            current[key] = template[key]
+    current["statusLine"] = json.loads(json.dumps(current["statusLine"]))
+    current["statusLine"]["command"] = current["statusLine"]["command"].replace("__CURSOR_HOME__", shlex.quote(cursor_home))
+    if full_access:
+        current["approvalMode"] = template["approvalMode"]
+        current["sandbox"] = template["sandbox"]
+    return atomic_write_json(path, current, "merge Cursor config")
+
+
+def validate_cursor_config(destination: str, template_path: str, cursor_home: str) -> int:
+    try:
+        current = json.loads(Path(destination).read_text(encoding="utf-8"))
+        template = json.loads(Path(template_path).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"invalid managed Cursor config: {exc}", file=sys.stderr)
+        return 1
+    if not isinstance(current, dict) or not isinstance(template, dict):
+        return 1
+    for key in ("version", "permissions", "editor", "display", "notifications", "hints", "modelSlashCommands", "rewind", "exploreSubagentModel", "autoAcceptWebSearch", "network", "attribution", "model", "selectedModel"):
+        if current.get(key) != template.get(key):
+            print(f"invalid managed Cursor config: {key} differs", file=sys.stderr)
+            return 1
+    expected = template.get("statusLine", {}).get("command", "").replace("__CURSOR_HOME__", shlex.quote(cursor_home))
+    if current.get("statusLine", {}).get("command") != expected:
+        print("invalid managed Cursor config: status line differs", file=sys.stderr)
+        return 1
+    return 0
+
+
+def sanitize_codex_config(source: str, destination: str) -> int:
+    try:
+        import tomllib
+        data = tomllib.loads(Path(source).read_text(encoding="utf-8"))
+    except (OSError, tomllib.TOMLDecodeError) as exc:
+        print(f"cannot sanitize Codex config: {exc}", file=sys.stderr)
+        return 1
+    scalar = ("model", "model_reasoning_effort", "personality", "plan_mode_reasoning_effort", "instructions_file", "approvals_reviewer")
+    lines = [f"{key} = {json.dumps(data[key])}" for key in scalar if isinstance(data.get(key), str)]
+    for table, keys in (("features", ("unified_exec", "goals", "memories", "prevent_idle_sleep", "multi_agent")), ("agents", ("enabled", "default_subagent_model", "default_subagent_reasoning_effort"))):
+        values = data.get(table, {})
+        if isinstance(values, dict):
+            selected = [(k, values[k]) for k in keys if isinstance(values.get(k), (str, bool))]
+            if selected:
+                lines.extend(["", f"[{table}]"] + [f"{k} = {json.dumps(v)}" for k, v in selected])
+    tui = data.get("tui", {})
+    if isinstance(tui, dict):
+        selected = [(k, tui[k]) for k in ("status_line", "theme", "status_line_use_colors") if isinstance(tui.get(k), (str, bool, list))]
+        if selected:
+            lines.extend(["", "[tui]"] + [f"{k} = {json.dumps(v)}" for k, v in selected])
+    plugin = data.get("plugins", {}).get("github@openai-curated", {}) if isinstance(data.get("plugins"), dict) else {}
+    if isinstance(plugin, dict) and isinstance(plugin.get("enabled"), bool):
+        lines.extend(["", '[plugins."github@openai-curated"]', f"enabled = {json.dumps(plugin['enabled'])}"])
+    Path(destination).write_text("\n".join(lines).strip() + "\n", encoding="utf-8")
     return 0
 
 
@@ -147,19 +321,46 @@ def main() -> int:
     scan_parser.add_argument("paths", nargs="+")
     json_parser = subparsers.add_parser("json-validate")
     json_parser.add_argument("path")
-    for name in ("merge-hooks", "remove-hooks"):
+    toml_parser = subparsers.add_parser("toml-validate")
+    toml_parser.add_argument("path")
+    for name in ("merge-hooks", "remove-hooks", "validate-hooks"):
         hook_parser = subparsers.add_parser(name)
         hook_parser.add_argument("--destination", required=True)
         hook_parser.add_argument("--template", required=True)
-        hook_parser.add_argument("--home", required=True)
+        home_group = hook_parser.add_mutually_exclusive_group(required=True)
+        home_group.add_argument("--cursor-home")
+        home_group.add_argument("--home", help="legacy alias; renders under HOME/.cursor")
+    config_parser = subparsers.add_parser("merge-cursor-config")
+    config_parser.add_argument("--destination", required=True)
+    config_parser.add_argument("--template", required=True)
+    config_parser.add_argument("--cursor-home", required=True)
+    config_parser.add_argument("--full-access", action="store_true")
+    config_validate = subparsers.add_parser("validate-cursor-config")
+    config_validate.add_argument("--destination", required=True)
+    config_validate.add_argument("--template", required=True)
+    config_validate.add_argument("--cursor-home", required=True)
+    sanitize_parser = subparsers.add_parser("sanitize-codex-config")
+    sanitize_parser.add_argument("--source", required=True)
+    sanitize_parser.add_argument("--destination", required=True)
     args = parser.parse_args()
     if args.command == "scan":
         return scan(args.paths)
     if args.command == "json-validate":
         return validate_json(args.path)
+    if args.command == "toml-validate":
+        return validate_toml(args.path)
+    if args.command == "merge-cursor-config":
+        return merge_cursor_config(args.destination, args.template, args.cursor_home, args.full_access)
+    if args.command == "validate-cursor-config":
+        return validate_cursor_config(args.destination, args.template, args.cursor_home)
+    if args.command == "sanitize-codex-config":
+        return sanitize_codex_config(args.source, args.destination)
+    cursor_home = args.cursor_home or str(Path(args.home) / ".cursor")
     if args.command == "merge-hooks":
-        return merge_hooks(args.destination, args.template, args.home)
-    return remove_hooks(args.destination, args.template, args.home)
+        return merge_hooks(args.destination, args.template, cursor_home)
+    if args.command == "remove-hooks":
+        return remove_hooks(args.destination, args.template, cursor_home)
+    return validate_hooks(args.destination, args.template, cursor_home)
 
 
 if __name__ == "__main__":

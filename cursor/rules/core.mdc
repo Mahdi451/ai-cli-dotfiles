@@ -1,0 +1,12 @@
+---
+description: Core engineering defaults for this repo
+alwaysApply: true
+---
+
+- Prefer minimal diffs over broad refactors.
+- Do not rewrite whole files unless necessary.
+- Preserve existing architecture unless the task explicitly requests redesign.
+- Ask before making risky, cross-module, or destructive changes.
+- When editing code, explain changed files briefly and why.
+- Prefer targeted tests/linting over full-suite runs unless needed.
+- When requirements are ambiguous, ask clarifying questions first.
