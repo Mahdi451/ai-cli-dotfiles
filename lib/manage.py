@@ -276,12 +276,44 @@ def validate_cursor_config(destination: str, template_path: str, cursor_home: st
         return 1
     if not isinstance(current, dict) or not isinstance(template, dict):
         return 1
-    for key in ("version", "permissions", "editor", "display", "notifications", "hints", "modelSlashCommands", "rewind", "exploreSubagentModel", "autoAcceptWebSearch", "network", "attribution", "model", "selectedModel"):
+    for key in ("version", "permissions", "editor", "display", "notifications", "hints", "modelSlashCommands", "rewind", "exploreSubagentModel", "autoAcceptWebSearch", "network", "attribution"):
         if current.get(key) != template.get(key):
             print(f"invalid managed Cursor config: {key} differs", file=sys.stderr)
             return 1
-    expected = template.get("statusLine", {}).get("command", "").replace("__CURSOR_HOME__", shlex.quote(cursor_home))
-    if current.get("statusLine", {}).get("command") != expected:
+    model = current.get("model")
+    selected = current.get("selectedModel")
+    expected_model = template.get("model")
+    expected_selected = template.get("selectedModel")
+    if not all(isinstance(value, dict) for value in (model, selected, expected_model, expected_selected)):
+        print("invalid managed Cursor config: model metadata must be objects", file=sys.stderr)
+        return 1
+    if model.get("modelId") != expected_model.get("modelId"):
+        print("invalid managed Cursor config: modelId differs", file=sys.stderr)
+        return 1
+    if selected.get("modelId") != expected_selected.get("modelId"):
+        print("invalid managed Cursor config: selected modelId differs", file=sys.stderr)
+        return 1
+    expected_parameters = expected_selected.get("parameters")
+    actual_parameters = selected.get("parameters")
+    if not isinstance(expected_parameters, list) or not isinstance(actual_parameters, list) or not all(isinstance(item, dict) for item in expected_parameters + actual_parameters):
+        print("invalid managed Cursor config: selected parameters must be object arrays", file=sys.stderr)
+        return 1
+    expected_reasoning = next((p.get("value") for p in expected_parameters if p.get("id") == "reasoning"), None)
+    actual_reasoning = next((p.get("value") for p in actual_parameters if p.get("id") == "reasoning"), None)
+    if actual_reasoning != expected_reasoning:
+        print("invalid managed Cursor config: selected reasoning differs", file=sys.stderr)
+        return 1
+    for key in ("approvalMode", "sandbox"):
+        if key in current and current.get(key) != template.get(key):
+            print(f"invalid managed Cursor config: {key} differs", file=sys.stderr)
+            return 1
+    current_status_line = current.get("statusLine")
+    template_status_line = template.get("statusLine")
+    if not isinstance(current_status_line, dict) or not isinstance(template_status_line, dict):
+        print("invalid managed Cursor config: status line must be an object", file=sys.stderr)
+        return 1
+    expected = template_status_line.get("command", "").replace("__CURSOR_HOME__", shlex.quote(cursor_home))
+    if current_status_line.get("command") != expected:
         print("invalid managed Cursor config: status line differs", file=sys.stderr)
         return 1
     return 0

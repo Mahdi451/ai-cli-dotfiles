@@ -22,6 +22,37 @@ import json,sys
 x=json.load(open(sys.argv[1])); assert x['model']['modelId']=='gpt-5.6-sol'; assert 'approvalMode' not in x; assert x['authInfo']['token']=='runtime-only'; assert x['modelSelectionHistory']==['old']; assert x['unknownRuntime']
 PY
 run "$first" "$ROOT/doctor.sh"
+python3 - "$first/.cursor/cli-config.json" <<'PY'
+import json,sys
+p=sys.argv[1]; x=json.load(open(p)); x["model"].update({"displayName":"runtime","aliases":["catalog"],"maxMode":False}); x["selectedModel"]["parameters"] += [{"id":"context","value":"1m"},{"id":"fast","value":"false"}]; json.dump(x,open(p,"w"))
+PY
+run "$first" "$ROOT/doctor.sh"
+python3 - "$first/.cursor/cli-config.json" <<'PY'
+import json,sys
+p=sys.argv[1]; x=json.load(open(p)); x["model"]["modelId"]="wrong"; json.dump(x,open(p,"w"))
+PY
+if run "$first" "$ROOT/doctor.sh" >/dev/null 2>&1; then exit 1; fi
+run "$first" "$ROOT/install.sh" --copy --force
+python3 - "$first/.cursor/cli-config.json" <<'PY'
+import json,sys
+p=sys.argv[1]; x=json.load(open(p)); x["selectedModel"]["parameters"][0]["value"]="low"; json.dump(x,open(p,"w"))
+PY
+if run "$first" "$ROOT/doctor.sh" >/dev/null 2>&1; then exit 1; fi
+python3 - "$first/.cursor/cli-config.json" <<'PY'
+import json,sys
+p=sys.argv[1]; x=json.load(open(p)); x["model"]="malformed"; x["selectedModel"]["parameters"]="malformed"; json.dump(x,open(p,"w"))
+PY
+malformed_doctor_output="$TEST_ROOT/malformed-doctor.out"
+if run "$first" "$ROOT/doctor.sh" >"$malformed_doctor_output" 2>&1; then exit 1; fi
+! rg -Fq Traceback "$malformed_doctor_output"
+status_line_home="$(make_home)"; run "$status_line_home" "$ROOT/install.sh" --copy
+python3 - "$status_line_home/.cursor/cli-config.json" <<'PY'
+import json,sys
+p=sys.argv[1]; x=json.load(open(p)); x["statusLine"]="malformed"; json.dump(x,open(p,"w"))
+PY
+malformed_status_output="$TEST_ROOT/malformed-status.out"
+if run "$status_line_home" "$ROOT/doctor.sh" >"$malformed_status_output" 2>&1; then exit 1; fi
+! rg -Fq Traceback "$malformed_status_output"
 second="$(make_home)"
 mkdir -p "$second/.codex"
 printf 'model = "personal"\n' > "$second/.codex/config.toml"
@@ -90,13 +121,13 @@ run "$codex_only" "$ROOT/install.sh" --codex-only --copy
 env PATH="$codex_only/fake-bin:$codex_only/.local/bin:$PATH" bash --noprofile --norc -c 'shopt -s expand_aliases; source "$1"; alias cdx; alias codexy' bash "$codex_only/.bashrc" | rg -F "alias cdx='codex'"
 
 # A failed install leaves its new backup incomplete; latest keeps the prior completed one.
-prior="$(run "$first" python3 "$ROOT/lib/state.py" latest --backup-root "$first/state/ai-cli-dotfiles/backups" --state-root "$first/state/ai-cli-dotfiles" --repo-root "$ROOT" --home "$first" --cursor-home "$first/.cursor" --codex-home "$first/.codex" --config-root "$first/config")"
+prior="$(run "$first" python3 "$ROOT/lib/state.py" latest --backup-root "$first/state/ai-cli-dotfiles/backups" --state-root "$first/state/ai-cli-dotfiles" --repo-root "$ROOT" --home "$first" --cursor-home "$first/.cursor" --codex-home "$first/.codex" --config-root "$first/config/ai-cli-dotfiles")"
 printf '%s\n' unmanaged > "$first/.local/bin/cursor-st"
 if run "$first" "$ROOT/install.sh" --copy >/dev/null 2>&1; then exit 1; fi
-latest="$(run "$first" python3 "$ROOT/lib/state.py" latest --backup-root "$first/state/ai-cli-dotfiles/backups" --state-root "$first/state/ai-cli-dotfiles" --repo-root "$ROOT" --home "$first" --cursor-home "$first/.cursor" --codex-home "$first/.codex" --config-root "$first/config")"
+latest="$(run "$first" python3 "$ROOT/lib/state.py" latest --backup-root "$first/state/ai-cli-dotfiles/backups" --state-root "$first/state/ai-cli-dotfiles" --repo-root "$ROOT" --home "$first" --cursor-home "$first/.cursor" --codex-home "$first/.codex" --config-root "$first/config/ai-cli-dotfiles")"
 [[ "$latest" == "$prior" ]]
 newest="$(find "$first/state/ai-cli-dotfiles/backups" -mindepth 1 -maxdepth 1 -type d | sort | tail -n1)"; [[ ! -e "$newest/.complete" ]]
-empty="$(make_home)"; mkdir -p "$empty/state/ai-cli-dotfiles/backups"; chmod 700 "$empty/state" "$empty/state/ai-cli-dotfiles" "$empty/state/ai-cli-dotfiles/backups"; [[ -z "$(run "$empty" python3 "$ROOT/lib/state.py" latest --backup-root "$empty/state/ai-cli-dotfiles/backups" --state-root "$empty/state/ai-cli-dotfiles" --repo-root "$ROOT" --home "$empty" --cursor-home "$empty/.cursor" --codex-home "$empty/.codex" --config-root "$empty/config")" ]]
+empty="$(make_home)"; mkdir -p "$empty/state/ai-cli-dotfiles/backups"; chmod 700 "$empty/state" "$empty/state/ai-cli-dotfiles" "$empty/state/ai-cli-dotfiles/backups"; [[ -z "$(run "$empty" python3 "$ROOT/lib/state.py" latest --backup-root "$empty/state/ai-cli-dotfiles/backups" --state-root "$empty/state/ai-cli-dotfiles" --repo-root "$ROOT" --home "$empty" --cursor-home "$empty/.cursor" --codex-home "$empty/.codex" --config-root "$empty/config/ai-cli-dotfiles")" ]]
 
 # Retained records survive a moved source checkout: copies use current-root fallback;
 # symlinks are verified by their stored raw link target.
@@ -118,7 +149,7 @@ run "$block_home" "$ROOT/uninstall.sh"; rg -Fq '# inside managed block' "$block_
 run "$block_home" "$ROOT/uninstall.sh" --force; ! rg -Fq '# BEGIN AI-CLI-DOTFILES aliases' "$block_home/.bashrc"
 
 # Publishing must fail closed before backup/smoke/commit when unrelated content is staged.
-publish_repo="$(mktemp -d "$TEST_ROOT/publish.XXXXXX")"; cp -a "$ROOT/." "$publish_repo/"
+publish_repo="$(mktemp -d "$TEST_ROOT/publish.XXXXXX")"; tar -C "$ROOT" --exclude=.git -cf - . | tar -C "$publish_repo" -xf -
 git -C "$publish_repo" init -q; git -C "$publish_repo" config user.email test@example.invalid; git -C "$publish_repo" config user.name test
 git -C "$publish_repo" add -A; git -C "$publish_repo" commit -qm baseline
 printf '%s\n' private > "$publish_repo/unrelated.txt"; git -C "$publish_repo" add unrelated.txt
