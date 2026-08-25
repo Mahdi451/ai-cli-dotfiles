@@ -1,0 +1,86 @@
+---
+alwaysApply: false
+---
+
+# Composer 2.5 + Grok 4.6 Routing Template
+
+This rule is a dormant template in the user rules directory. `cursor-st --groky` renders a project-local copy with `alwaysApply: true`. Do not apply this template in ordinary `cursor-st` sessions.
+
+When active, Composer 2.5 is the parent and primary task owner. Keep normal work in the parent context. Do not delegate merely because subagents exist.
+
+## Non-Fast invariant
+
+Every managed model in this hierarchy must run with `fast=false`.
+
+- Composer parent: `composer-2.5`, with the launcher forcing selected-model `fast=false` immediately before startup.
+- `composer-owner`: `composer-2.5[fast=false]`.
+- `grok-advisor`: `grok-4.6[effort=medium,fast=false]`.
+- `grok-architect`: `grok-4.6[effort=high,fast=false]`.
+- `grok-reviewer`: `grok-4.6[effort=high,fast=false]`.
+- `grok-escalation`: `grok-4.6[effort=xhigh,fast=false]`.
+
+Do not switch Fast on to reduce latency. Do not use an unspecified custom-agent model when a pinned role exists. Prefer direct parent tool use or the pinned custom agents over built-in/automatic subagents whose speed variant cannot be verified.
+
+## Default path
+
+Composer -> inspect relevant code -> lightweight plan when needed -> implement -> deterministic validation -> inspect diff -> done
+
+Routine work does not require Grok.
+
+## Grok roles
+
+- `grok-advisor`: Grok 4.6 Medium, read-only. Use for targeted difficult reasoning/debugging after a credible Composer attempt.
+- `grok-architect`: Grok 4.6 High, read-only. Use before implementation for consequential architecture, security, persistence/migrations, concurrency/synchronization, public APIs/interfaces, or large cross-cutting changes.
+- `grok-reviewer`: Grok 4.6 High, read-only. Use after deterministic validation for important/high-risk integrated changes where independent review materially reduces risk.
+- `grok-escalation`: Grok 4.6 xHigh, read-only. Use only after credible Composer and Grok High attempts leave material uncertainty.
+
+Do not use the Sol/Terra/Luna custom agents in Groky mode. Do not create a permanent Grok Low worker. Composer owns normal implementation, and extra delegation can cost more context than it saves.
+
+## Routing
+
+### Routine
+
+Composer -> implement -> validate -> inspect diff -> done
+
+### Important
+
+Composer -> implement -> validate -> compact handoff -> `grok-reviewer` -> Composer fixes valid findings -> validate -> done
+
+### Architectural
+
+Composer gathers minimum relevant context -> `grok-architect` -> Composer implements -> validate -> `grok-reviewer` -> Composer fixes valid findings -> validate -> done
+
+### Stalled
+
+Composer makes credible focused attempts -> `grok-advisor` -> Composer implements recommendation -> validate.
+
+If substantial uncertainty remains, use `grok-architect` or `grok-reviewer` as appropriate. Use `grok-escalation` only as the final reasoning escalation.
+
+## Compact handoff
+
+Before any Grok delegation, provide only what the next agent needs:
+
+- objective
+- acceptance criteria
+- relevant architecture
+- relevant or changed files
+- important decisions
+- validation already run and results
+- observed failure or uncertainty
+- current git diff when reviewing implementation
+
+The Grok agent should expand repository exploration only when a concrete concern requires it.
+
+## Token-efficiency and reliability
+
+1. Prefer deterministic tests/checks over extra model-review passes.
+2. Avoid duplicate repository exploration across parent and subagents.
+3. Keep implementation ownership with Composer unless escalation materially improves the chance of success.
+4. Prefer the custom Grok agents above over unspecified/built-in subagents when a Grok escalation is required.
+5. Do not run writing agents concurrently on overlapping files unless isolated worktrees are explicitly used.
+6. Re-review after fixes only when the fix is substantial, the reviewer requested it, or the area is high-risk.
+7. Keep changes minimal and avoid unrelated cleanup.
+
+## Completion
+
+Routine work may complete with Composer after relevant validation and diff inspection. Consequential work is complete after relevant deterministic validation and any required Grok findings are handled. State remaining limitations honestly.

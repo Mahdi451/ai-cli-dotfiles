@@ -1,0 +1,17 @@
+---
+description: Minimize unnecessary model calls, context duplication, and expensive review while preserving correctness
+alwaysApply: true
+---
+
+# Token efficiency
+
+- Keep routine work with the current primary owner when it can be solved and verified locally.
+- Do not delegate merely because another agent exists.
+- Before delegation, send a compact handoff: objective, acceptance criteria, relevant files/architecture, current diff, validation already run, observed failure or uncertainty.
+- Do not make the receiving agent rediscover the entire repository unless a concrete concern requires broader inspection.
+- Prefer deterministic tests, typechecks, lint, builds, and focused runtime validation over redundant model-on-model review.
+- Use expensive senior reasoning only for architecture, security, persistence, concurrency, public API risk, stubborn debugging, or consequential independent review.
+- Avoid re-review after small fixes unless the reviewer requested it, the fix is substantial, or the area remains high-risk.
+- Avoid parallel writing agents on overlapping files unless isolated worktrees are explicitly used.
+- Prefer standard/non-Fast Cursor variants; managed hierarchy models must remain `fast=false`.
+- Report concise handoffs and completion summaries rather than replaying the full reasoning history.

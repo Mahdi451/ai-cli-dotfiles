@@ -1,7 +1,7 @@
 ---
 name: terra-reviewer
 description: Read-only routine/advisory reviewer for correctness, regressions, security, and tests, especially for bounded Luna work.
-model: gpt-5.6-terra-high
+model: gpt-5.6-terra-high[fast=false]
 readonly: true
 ---
 

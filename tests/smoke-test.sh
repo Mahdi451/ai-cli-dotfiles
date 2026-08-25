@@ -19,12 +19,12 @@ assert sys.argv[2] + '/.cursor/hooks/cursor-st-command-guard.py' in command and 
 PY
 python3 - "$first/.cursor/cli-config.json" <<'PY'
 import json,sys
-x=json.load(open(sys.argv[1])); assert x['model']['modelId']=='gpt-5.6-sol'; assert 'approvalMode' not in x; assert x['authInfo']['token']=='runtime-only'; assert x['modelSelectionHistory']==['old']; assert x['unknownRuntime']
+x=json.load(open(sys.argv[1])); assert x['model']['modelId']=='gpt-5.6-sol'; assert any(p.get('id')=='fast' and str(p.get('value')).lower()=='false' for p in x['selectedModel']['parameters']); assert 'approvalMode' not in x; assert x['authInfo']['token']=='runtime-only'; assert x['modelSelectionHistory']==['old']; assert x['unknownRuntime']
 PY
 run "$first" "$ROOT/doctor.sh"
 python3 - "$first/.cursor/cli-config.json" <<'PY'
 import json,sys
-p=sys.argv[1]; x=json.load(open(p)); x["model"].update({"displayName":"runtime","aliases":["catalog"],"maxMode":False}); x["selectedModel"]["parameters"] += [{"id":"context","value":"1m"},{"id":"fast","value":"false"}]; json.dump(x,open(p,"w"))
+p=sys.argv[1]; x=json.load(open(p)); x["model"].update({"displayName":"runtime","aliases":["catalog"],"maxMode":False}); x["selectedModel"]["parameters"] += [{"id":"context","value":"1m"}]; json.dump(x,open(p,"w"))
 PY
 run "$first" "$ROOT/doctor.sh"
 python3 - "$first/.cursor/cli-config.json" <<'PY'
@@ -85,13 +85,13 @@ python3 - "$scratch/cursor/cli-config.json" <<'PY'
 import json,sys
 x=json.load(open(sys.argv[1]))
 assert x['model'] == {'modelId':'gpt-5.6-sol'}
-assert x['selectedModel'] == {'modelId':'gpt-5.6-sol','parameters':[{'id':'reasoning','value':'high'}]}
+assert x['selectedModel'] == {'modelId':'gpt-5.6-sol','parameters':[{'id':'reasoning','value':'high'},{'id':'fast','value':'false'}]}
 text=open(sys.argv[1]).read()
-for forbidden in ('displayModelId','displayName','aliases','maxMode','272k','fast','modelSelectionHistory'):
+for forbidden in ('displayModelId','displayName','aliases','maxMode','272k','modelSelectionHistory'):
     assert forbidden not in text
 PY
 for rule in core execution-safety one-line-commands token-efficiency git-filesystem-safety minimal-diff model-routing verification-before-done; do [[ -f "$ROOT/cursor/rules/$rule.mdc" ]]; done
-[[ -f "$ROOT/shell/ai-cli-aliases.sh" ]]
+[[ -f "$ROOT/cursor/agents/composer-owner.md" && -f "$ROOT/shell/ai-cli-aliases.sh" ]]
 run "$third" "$ROOT/uninstall.sh" --restore --force
 [[ ! -e "$third/.local/bin/cursor-st" ]]
 fourth="$(make_home)"

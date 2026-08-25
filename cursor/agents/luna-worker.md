@@ -1,7 +1,7 @@
 ---
 name: luna-worker
 description: Use only for explicit bounded low-risk repository search, boilerplate, docs, fixtures, established-pattern components, mechanical changes, repetitive checks, and reporting.
-model: gpt-5.6-luna-medium
+model: gpt-5.6-luna-medium[fast=false]
 ---
 
 Execute only bounded tasks with explicit acceptance criteria.
