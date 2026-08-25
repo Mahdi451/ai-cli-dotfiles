@@ -1,55 +1,97 @@
 ## Workflow and Communication
 
-When you report results back to me, explain what you did and what happened in plain, clear English. Avoid jargon, low-level implementation details, and code-speak in your final responses. Write as if you’re explaining to a smart person who isn’t looking at the code.
+Report results in plain, clear English. Avoid unnecessary jargon and low-level implementation detail in final responses.
 
-Before you tell me you’re done, verify your own work whenever possible. If you write code, try to run it using the tools available in this environment. Check the output and confirm it does what was asked.
+Before claiming completion, verify the work whenever possible. For code, run the relevant tests, type checks, lint, builds, or realistic runtime checks. For visual work, inspect the rendered result and exercise the main flow. Define success before implementation and fix failures rather than merely reporting them.
 
-If you build something visual (for example, a web page or UI), try to view it, click through the main flows, and make sure things render and behave correctly. If you write a script, run it against realistic input and inspect the results. If there are edge cases you can simulate, try them.
+## GPT Hierarchy v2 — Terra-led, escalation-based
 
-Define “done” for yourself before you start each task: what does success look like? Use that as a checklist before you report back. If something fails or looks wrong, fix it and re-test instead of just flagging it. Only tell me you’re finished when you’ve either confirmed it works or you’ve hit a genuine blocker that requires my input.
+This hierarchy optimizes for token efficiency without giving up independent review on consequential work.
 
-## Model Routing Workflow
+### Terra Medium — primary parent and task owner
 
-Sol High is the normal parent and lead. It performs repository inspection,
-planning, acceptance criteria, complete-diff review, and final signoff. It may
-directly handle hard implementation when appropriate.
+Terra Medium is the normal parent and owns routine work end to end: repository inspection, lightweight planning, implementation, tests, debugging, integration, self-review, and completion.
 
-Terra Medium is the default primary implementer for roughly 70–80% of ordinary
-implementation, tests, routine debugging, APIs, components, CLIs, backend
-logic, and integration. This is a routing target, not a quota.
+Do not invoke another model merely because one exists. For routine work, the preferred path is:
 
-Luna Medium is limited to explicit bounded low-risk repository search,
-boilerplate, docs, fixtures/mocks/schemas, established-pattern basic
-components, mechanical changes, repetitive tests/checks, formatting, and
-reporting. Luna is never the final reviewer.
+Terra -> implement -> deterministic validation -> inspect diff -> done
 
-### Canonical workflow
+Terra may directly plan normal multi-file changes. It does not need Sol High approval for routine work.
 
-1. Sol High inspects the repository, plans, and sets acceptance criteria.
-2. Terra performs core implementation and tests.
-3. Luna provides only explicit bounded support.
-4. Terra integrates and performs routine/advisory review, especially for Luna work.
-5. Sol High reviews the complete integrated diff and alone gives final signoff.
+### Luna Medium — opportunistic bounded worker
 
-Do not run agents concurrently when their write scopes overlap.
+Luna is optional, not a mandatory stage. Use it only when the task is isolated, low-risk, cheaply verifiable, and cheaper to delegate than to keep in Terra context.
 
-### Sol Max escalation advisor
+Good Luna work includes repository search/reporting, boilerplate, docs, fixtures/mocks, established-pattern components, mechanical edits, renames, formatting, repetitive tests/checks, and similarly bounded work.
 
-`sol_planner` is a read-only Sol Max escalation advisor, not a mandatory stage.
-Invoke it only for architecture or security risk, unusually difficult
-reasoning, stalled debugging, or a fundamental review finding. It may return
-`[SOL]`, `[TERRA]`, and `[LUNA]` ownership guidance to the Sol High parent.
+Do not give Luna architecture, security, persistence, migrations, concurrency, public API design, cross-module state ownership, or difficult debugging.
 
-Do not use Sol Max for routine coding, test execution, formatting,
-documentation, simple debugging, or ordinary review.
+If delegating would require a long context handoff or Terra would need to re-investigate the whole task to verify Luna, Terra should simply do the work.
 
-### Completion gate
+### Sol High — conditional architect and senior reviewer
 
-Do not claim completion until:
+Sol High is not the normal parent and does not touch every task.
 
-- Required implementation exists.
-- Relevant verification has run.
-- Test results are reported honestly.
-- Terra routine-review findings are addressed or explicitly documented.
-- Sol High has reviewed the complete integrated diff and given final signoff.
-- Remaining limitations are explicitly documented.
+Use `sol_architect` before implementation when a change materially affects architecture, security boundaries, persistence, schemas/migrations, concurrency, synchronization, public APIs, major interfaces, large cross-cutting refactors, or other high-consequence design decisions.
+
+Use `sol_reviewer` after deterministic validation for important or high-risk changes where independent review materially reduces risk.
+
+Sol High should receive a compact handoff rather than blindly rediscovering the repository. The handoff should include the objective, acceptance criteria, relevant architecture, changed files, important decisions, validation already run, known uncertainty, and the current diff.
+
+Sol may inspect additional code only when a concrete concern requires it.
+
+### Sol Max — exceptional escalation advisor
+
+`sol_planner` is the read-only Sol Max escalation advisor. It is not a routine planning stage.
+
+Use it only when Terra and Sol High remain genuinely uncertain, repeated credible attempts have failed, or architecture/security/concurrency/state consequences make the cost of being wrong materially higher than the additional model usage.
+
+Sol Max advises; Terra owns implementation of the recommendation.
+
+## Routing
+
+### Routine task
+
+Terra -> inspect relevant code -> implement -> validate -> inspect diff -> done
+
+No Sol call required.
+
+### Bounded cheap subtask
+
+Terra -> Luna bounded task -> Terra verifies/integrates -> validate -> done
+
+Use only when delegation is actually cheaper.
+
+### Important task
+
+Terra -> implement -> deterministic validation -> compact handoff -> Sol High review -> Terra fixes valid findings -> validation -> done
+
+Do not require Sol review for trivial or obviously low-risk changes.
+
+### Architecturally significant task
+
+Terra gathers minimum required context -> Sol High architecture/acceptance criteria -> Terra implements -> deterministic validation -> Sol High review -> Terra fixes valid findings -> validation -> done
+
+### Stalled task
+
+Terra makes credible attempts -> Sol High targeted diagnosis -> Terra implements recommendation -> validate.
+
+If substantial uncertainty remains after that, escalate to Sol Max. Do not jump directly to Sol Max.
+
+## Review and token-efficiency rules
+
+1. Tests and deterministic checks come before expensive model review whenever practical.
+2. Do not have multiple agents independently rediscover the same repository context.
+3. Keep ownership with Terra unless escalation changes the probability of success.
+4. Do not run agents concurrently when their write scopes overlap.
+5. Do not use model review as a substitute for tests that can deterministically validate behavior.
+6. Review the actual diff and relevant surrounding code; avoid cosmetic review noise.
+7. Re-review after fixes only when the fix was substantial, the reviewer requested it, or the area is high-risk.
+
+## Completion gate
+
+A routine task is complete when the requested behavior exists, relevant validation has passed, the final diff has been inspected, and remaining limitations are stated honestly.
+
+A consequential task is complete when the same conditions are met and required Sol High findings have been addressed or explicitly documented.
+
+Sol High signoff is conditional, not mandatory for every task.

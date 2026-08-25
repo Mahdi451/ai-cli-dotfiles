@@ -1,5 +1,6 @@
-model = "gpt-5.6-sol"
-model_reasoning_effort = "high"
+# Compatibility filename retained intentionally: this profile now implements GPT Hierarchy v2.
+model = "gpt-5.6-terra"
+model_reasoning_effort = "medium"
 instructions_file = "~/.codex/AGENTS.md"
 
 [features]

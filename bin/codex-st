@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-WORKFLOW_VERSION='5.0.0'
+WORKFLOW_VERSION='6.0.0'
+# Compatibility profile name retained so existing installs do not break solely due to a rename.
 PROFILE_NAME='sol-terra-luna'
 CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
 
@@ -23,19 +24,26 @@ find_codex_bin() {
 show_flow() {
   cat <<EOF
 Workflow version:   $WORKFLOW_VERSION
-Sol High parent:    gpt-5.6-sol (high)
-Terra default:      gpt-5.6-terra (medium)
-Luna support:       gpt-5.6-luna (medium, bounded only)
-Sol Max advisor:    gpt-5.6-sol (max, read-only escalation only)
-Profile:            $PROFILE_NAME
+Terra parent:       gpt-5.6-terra (medium)
+Luna support:       gpt-5.6-luna (medium, bounded/opportunistic)
+Sol High architect: gpt-5.6-sol (high, read-only conditional)
+Sol High reviewer:  gpt-5.6-sol (high, read-only conditional)
+Terra High review:  gpt-5.6-terra (high, read-only optional)
+Sol Max advisor:    gpt-5.6-sol (max, read-only exceptional escalation)
+Profile:            $PROFILE_NAME (compatibility name)
 
-Flow:
-  Sol High inspect/plan/acceptance -> Terra core implementation/tests
-  -> Luna bounded support -> Terra integration/routine review
-  -> Sol High complete-diff review and final signoff
+Default flow:
+  Terra inspect/plan/implement -> deterministic validation -> diff inspection -> done
 
-  Sol Max is read-only and escalates only for architecture/security risk,
-  unusually difficult reasoning, stalled debugging, or fundamental findings.
+Important work:
+  Terra implement/validate -> Sol High targeted review -> Terra fixes -> validate -> done
+
+Architectural work:
+  Terra gathers context -> Sol High architecture -> Terra implements/validates
+  -> Sol High review -> Terra fixes -> validate -> done
+
+Luna is used only for bounded low-risk work when delegation is actually cheaper.
+Sol Max is used only after credible Terra attempts and Sol High escalation leave material uncertainty.
 EOF
 }
 
@@ -50,7 +58,7 @@ doctor() {
     printf 'Missing instructions: %s\n' "$CODEX_HOME/AGENTS.md" >&2
     failures=$((failures + 1))
   }
-  for agent in sol-planner terra-implementer terra-reviewer luna-worker; do
+  for agent in sol-planner sol-architect sol-reviewer terra-implementer terra-reviewer luna-worker; do
     [[ -f "$CODEX_HOME/agents/$agent.toml" ]] || {
       printf 'Missing agent: %s\n' "$CODEX_HOME/agents/$agent.toml" >&2
       failures=$((failures + 1))
@@ -73,19 +81,19 @@ for arg in "$@"; do
   [[ "$arg" == -- ]] && break
   case "$arg" in
     --model|--model=*|-m|-m*)
-      printf 'codex-st manages the Sol High parent model; do not pass --model/-m.\n' >&2
+      printf 'codex-st manages the Terra Medium parent model; do not pass --model/-m.\n' >&2
       exit 2
       ;;
     --profile|--profile=*|-p|-p*)
-      printf 'codex-st manages the %s profile; do not pass --profile/-p.\n' "$PROFILE_NAME" >&2
+      printf 'codex-st manages the %s compatibility profile; do not pass --profile/-p.\n' "$PROFILE_NAME" >&2
       exit 2
       ;;
     --config|--config=*|-c|-c*|--enable|--enable=*|--disable|--disable=*)
-      printf 'codex-st protects the Sol/Terra/Luna hierarchy; do not pass config or feature overrides.\n' >&2
+      printf 'codex-st protects GPT Hierarchy v2; do not pass config or feature overrides.\n' >&2
       exit 2
       ;;
     --oss|--oss=*|--local-provider|--local-provider=*|--remote|--remote=*|--remote-auth-token-env|--remote-auth-token-env=*)
-      printf 'codex-st protects the Sol/Terra/Luna hierarchy; do not pass provider or remote overrides.\n' >&2
+      printf 'codex-st protects GPT Hierarchy v2; do not pass provider or remote overrides.\n' >&2
       exit 2
       ;;
   esac
