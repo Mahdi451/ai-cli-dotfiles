@@ -42,7 +42,7 @@ The `sol-terra-luna` profile filename is intentionally retained for compatibilit
 
 The official `codex` executable remains untouched. `cdx` and `codex` are raw Codex. `codex-st` selects the managed compatibility profile, blocks model/profile/configuration overrides that could bypass it, and forwards normal arguments and subcommands.
 
-The primary full-approval home alias is `cyolo`:
+The canonical full-approval home alias is `cyolo`:
 
 ```bash
 cyolo='codex-st --dangerously-bypass-approvals-and-sandbox'
