@@ -11,6 +11,8 @@ groky "implement the reviewed change and validate it"
 
 - `groky-safe` expands to `cursor-st --groky` and uses normal Cursor approval behavior.
 - `groky` expands to `cursor-st --groky --yolo` and uses the same hierarchy with full-autonomy behavior.
+- `cagent` / `cursory` are reserved for the original Sol/Terra/Luna Cursor hierarchy.
+- `cyolo` is reserved for the home GPT/Codex hierarchy and must not be reused by Cursor.
 
 ## Routing
 
