@@ -9,8 +9,8 @@ The repository intentionally supports separate Cursor and Codex hierarchies.
 ### Cursor — Sol/Terra/Luna
 
 ```bash
-cagent   # cursor-st, normal approval behavior
-cyolo    # cursor-st --yolo
+cagent    # cursor-st, normal approval behavior
+cursory   # cursor-st --yolo
 ```
 
 Sol High is the parent, Terra is the primary implementer, Luna is bounded support, and Sol Max is escalation.
@@ -91,7 +91,13 @@ Exceptional:   Terra -> Sol High -> Sol Max only if still materially uncertain
 | Sol reviewer | `gpt-5.6-sol` + high | Conditional independent senior review |
 | Sol Max advisor | `gpt-5.6-sol` + max | Exceptional escalation |
 
-Cursor's `fast` toggle is not part of the Codex model configuration.
+The primary full-approval alias for this home GPT hierarchy is:
+
+```bash
+cyolo   # codex-st --dangerously-bypass-approvals-and-sandbox
+```
+
+`codexy` is retained only as a backward-compatible alias for the same command. Cursor's `fast` toggle is not part of the Codex model configuration.
 
 See `codex/HIERARCHY.md` and `codex/prompts/terra-led-workflow.md`.
 
@@ -139,27 +145,31 @@ Useful options:
 ```bash
 cd ~/projects/example-app
 
+# Existing Cursor hierarchy
 cagent "Inspect this project and propose a plan."
-cyolo "Implement the reviewed change and validate it."
+cursory "Implement the reviewed change and validate it."
 
+# Composer + Grok Cursor hierarchy
 groky-safe "Implement the requested change and validate it."
 groky "Implement the reviewed change and validate it."
 
+# Home GPT/Codex hierarchy
 codex-st "Implement the requested change and validate it."
-codexy "Implement the reviewed change and validate it."
+cyolo "Implement the reviewed change and validate it."
 ```
 
 | Command | Behavior |
 | --- | --- |
 | `cagent` | Managed Sol-led Cursor workflow, normal approvals |
-| `cyolo` | Same Sol-led Cursor workflow with `--yolo` |
+| `cursory` | Same Sol-led Cursor workflow with Cursor `--yolo` |
 | `groky-safe` | Composer 2.5 + Grok 4.6 hierarchy, normal approvals |
-| `groky` | Same Composer + Grok hierarchy with `--yolo` |
-| `codex-st` | Managed Terra-led GPT Hierarchy v2 |
-| `codexy` | Same GPT Hierarchy v2 with `--dangerously-bypass-approvals-and-sandbox` |
+| `groky` | Same Composer + Grok hierarchy with Cursor `--yolo` |
+| `codex-st` | Managed Terra-led GPT Hierarchy v2 with normal Codex approvals/sandbox |
+| `cyolo` | Primary GPT Hierarchy v2 alias with `--dangerously-bypass-approvals-and-sandbox` |
+| `codexy` | Backward-compatible alias for `cyolo` |
 | `cdx` | Raw official `codex` command |
 
-High-risk launchers change execution permissions, not model quality. Use `cyolo` and `groky` only in trusted projects. Use `codexy` only inside an external sandbox/trusted environment.
+High-risk launchers change execution permissions, not model quality. Use `cursory`, `groky`, and `cyolo` only in trusted or appropriately sandboxed environments.
 
 ## Inspect configured flows
 
