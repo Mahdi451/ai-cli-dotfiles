@@ -1,37 +1,224 @@
 # AI CLI dotfiles
 
-Portable Linux/WSL configuration for the official Cursor and Codex CLIs. The repository installs reviewed instructions, agent roles, guarded launchers, selected preferences, and shell aliases. It does not install either CLI, sign you in, or place credentials, sessions, history, caches, or machine-local trust state in Git.
+Portable Linux/WSL configuration for opinionated Cursor and Codex CLI workflows: guarded launchers, model hierarchies, reusable agent roles, shell aliases, validation rules, and safe install/backup tooling.
 
-## Model workflows
+> **Core idea:** keep routine work with the cheapest capable owner, use deterministic validation early, and spend expensive reasoning only when it materially improves the probability of success.
 
-The repository intentionally supports separate Cursor and Codex hierarchies.
+## At a glance
 
-### Cursor — Sol/Terra/Luna
+| Workflow | Primary command | Normal/safe command | Default owner | Senior reasoning | Use case |
+| --- | --- | --- | --- | --- | --- |
+| **GPT Hierarchy v2** | `cyolo` | `codex-st` | Terra Medium | Sol High / Sol Max | Home Codex workflow |
+| **Groky** | `groky` | `groky-safe` | Composer 2.5 | Grok 4.6 High / xHigh | Token-conscious Cursor workflow |
+| **Original Cursor** | `cursory` | `cagent` | Sol High | Sol Max | Legacy Sol/Terra/Luna Cursor workflow |
 
-```bash
-cagent    # cursor-st, normal approval behavior
-cursory   # cursor-st --yolo
+### Launcher map
+
+```mermaid
+flowchart LR
+    U([You])
+
+    U -->|Home GPT| CYOLO[cyolo]
+    U -->|Home GPT, normal approvals| CST[codex-st]
+    U -->|Work Cursor, autonomous| GROKY[groky]
+    U -->|Work Cursor, normal approvals| GSAFE[groky-safe]
+    U -->|Original Cursor, autonomous| CURSORY[cursory]
+    U -->|Original Cursor, normal approvals| CAGENT[cagent]
+
+    CYOLO --> CODEX[GPT Hierarchy v2]
+    CST --> CODEX
+    GROKY --> CG[Composer + Grok]
+    GSAFE --> CG
+    CURSORY --> STL[Sol / Terra / Luna]
+    CAGENT --> STL
+
+    classDef user fill:#111827,stroke:#64748b,color:#f8fafc,stroke-width:2px;
+    classDef gpt fill:#172554,stroke:#60a5fa,color:#eff6ff,stroke-width:2px;
+    classDef grok fill:#052e16,stroke:#4ade80,color:#f0fdf4,stroke-width:2px;
+    classDef cursor fill:#3f1d0b,stroke:#fb923c,color:#fff7ed,stroke-width:2px;
+    class U user;
+    class CYOLO,CST,CODEX gpt;
+    class GROKY,GSAFE,CG grok;
+    class CURSORY,CAGENT,STL cursor;
 ```
 
-Sol High is the parent, Terra is the primary implementer, Luna is bounded support, and Sol Max is escalation.
+## Which launcher should I use?
 
-All managed Cursor models are explicitly non-Fast:
+```mermaid
+flowchart TD
+    START([Start a coding task]) --> WHERE{Which environment?}
 
-| Role | Model |
-| --- | --- |
-| Sol High parent | `gpt-5.6-sol` + high reasoning + `fast=false` |
-| Sol Max | `gpt-5.6-sol-max[fast=false]` |
-| Terra implementer | `gpt-5.6-terra-medium[fast=false]` |
-| Terra reviewer | `gpt-5.6-terra-high[fast=false]` |
-| Luna worker | `gpt-5.6-luna-medium[fast=false]` |
+    WHERE -->|Home / Codex| GPTRISK{Want full approvals?}
+    WHERE -->|Work / Cursor| CURSORSTYLE{Which hierarchy?}
 
-`cursor-st` rewrites only the selected parent model fields to the intended non-Fast values immediately before launch and rejects caller `--model` overrides.
+    GPTRISK -->|Yes| CYOLO[cyolo]
+    GPTRISK -->|No| CST[codex-st]
 
-### Cursor — Composer 2.5 + Grok 4.6 (Groky)
+    CURSORSTYLE -->|Composer + Grok| GROKAPP{Approval mode?}
+    CURSORSTYLE -->|Original Sol / Terra / Luna| OLDAPP{Approval mode?}
+
+    GROKAPP -->|Normal| GSAFE[groky-safe]
+    GROKAPP -->|Autonomous| GROKY[groky]
+
+    OLDAPP -->|Normal| CAGENT[cagent]
+    OLDAPP -->|Autonomous| CURSORY[cursory]
+
+    classDef decision fill:#0f172a,stroke:#94a3b8,color:#f8fafc;
+    classDef safe fill:#0c4a6e,stroke:#38bdf8,color:#f0f9ff;
+    classDef auto fill:#3f1d0b,stroke:#fb923c,color:#fff7ed;
+    class WHERE,GPTRISK,CURSORSTYLE,GROKAPP,OLDAPP decision;
+    class CST,GSAFE,CAGENT safe;
+    class CYOLO,GROKY,CURSORY auto;
+```
+
+---
+
+# GPT Hierarchy v2 — home Codex workflow
+
+The optimized home hierarchy is Terra-led. Routine tasks stay in one Terra context; Luna is opportunistic; Sol High is conditional; Sol Max is exceptional.
+
+### Architecture
+
+```mermaid
+flowchart TD
+    T[Terra Medium<br/>Primary Task Owner]
+    L[Luna Medium<br/>Bounded Cheap Support]
+    V[Tests / Typecheck / Lint / Build<br/>Deterministic Validation]
+    SA[Sol High<br/>Architect]
+    SR[Sol High<br/>Independent Reviewer]
+    SM[Sol Max<br/>Exceptional Escalation]
+    FIX[Terra<br/>Fix Findings]
+    DONE([Done])
+
+    T -->|Routine work| V
+    V -->|Routine + passing| DONE
+
+    T -->|Large mechanical / bounded task| L
+    L -->|Handoff| T
+
+    T -->|Architecture / security / persistence / concurrency| SA
+    SA -->|Acceptance criteria + approach| T
+
+    V -->|Consequential change| SR
+    SR -->|No material findings| DONE
+    SR -->|Actionable findings| FIX
+    FIX --> V
+
+    T -->|Credible attempts still blocked| SR
+    SR -->|Still materially uncertain| SM
+    SM -->|Diagnosis / recommendation| T
+
+    classDef owner fill:#172554,stroke:#60a5fa,color:#eff6ff,stroke-width:2px;
+    classDef cheap fill:#164e63,stroke:#22d3ee,color:#ecfeff;
+    classDef senior fill:#3b0764,stroke:#c084fc,color:#faf5ff,stroke-width:2px;
+    classDef verify fill:#1f2937,stroke:#94a3b8,color:#f8fafc;
+    classDef done fill:#052e16,stroke:#4ade80,color:#f0fdf4,stroke-width:2px;
+    class T,FIX owner;
+    class L cheap;
+    class SA,SR,SM senior;
+    class V verify;
+    class DONE done;
+```
+
+### Routing contract
 
 ```text
 Routine:
-  Composer -> implement -> deterministic validation -> diff inspection -> done
+  Terra -> validate -> diff inspection -> done
+
+Bounded cheap support:
+  Terra -> Luna -> Terra verifies/integrates -> validate -> done
+
+Important:
+  Terra -> validate -> Sol High reviewer -> Terra fixes -> validate -> done
+
+Architectural:
+  Sol High architect -> Terra implements -> validate -> Sol High reviewer -> done
+
+Exceptional:
+  Terra attempts -> Sol High diagnosis -> Sol Max only if material uncertainty remains
+```
+
+| Role | Model + effort | Responsibility |
+| --- | --- | --- |
+| Terra parent | `gpt-5.6-terra` + medium | Default owner: inspect, implement, test, debug, integrate, self-review |
+| Luna worker | `gpt-5.6-luna` + medium | Optional isolated low-risk/mechanical support |
+| Terra reviewer | `gpt-5.6-terra` + high | Optional routine second pass, mainly for Luna work |
+| Sol architect | `gpt-5.6-sol` + high | Architecture and acceptance criteria for consequential changes |
+| Sol reviewer | `gpt-5.6-sol` + high | Independent integrated-diff review |
+| Sol Max advisor | `gpt-5.6-sol` + max | Exceptional escalation only |
+
+### Commands
+
+```bash
+# Normal Codex approvals / sandbox
+codex-st "Implement the requested change and validate it."
+
+# Canonical full-approval home GPT alias
+cyolo "Implement the reviewed change and validate it."
+```
+
+`cyolo` expands to:
+
+```bash
+codex-st --dangerously-bypass-approvals-and-sandbox
+```
+
+`codexy` remains only as a backward-compatible alias for the same command.
+
+See [`codex/HIERARCHY.md`](codex/HIERARCHY.md) and [`codex/prompts/terra-led-workflow.md`](codex/prompts/terra-led-workflow.md).
+
+---
+
+# Groky — Composer 2.5 + Grok 4.6 Cursor workflow
+
+Groky is the token-conscious work hierarchy: Composer owns normal coding, tests, debugging, and integration; Grok enters only when deeper reasoning or independent review is worth the extra context and cost.
+
+### Architecture
+
+```mermaid
+flowchart TD
+    C[Composer 2.5<br/>Primary Task Owner<br/>fast=false]
+    V[Tests / Typecheck / Lint / Build<br/>Deterministic Validation]
+    GM[Grok 4.6 Medium<br/>Targeted Advisor<br/>fast=false]
+    GH1[Grok 4.6 High<br/>Architect<br/>fast=false]
+    GH2[Grok 4.6 High<br/>Reviewer<br/>fast=false]
+    GX[Grok 4.6 xHigh<br/>Exceptional Escalation<br/>fast=false]
+    FIX[Composer<br/>Fix Findings]
+    DONE([Done])
+
+    C -->|Routine| V
+    V -->|Routine + passing| DONE
+
+    C -->|Stubborn debugging| GM
+    GM -->|Focused recommendation| C
+
+    C -->|Architecture / high-risk design| GH1
+    GH1 -->|Acceptance criteria + approach| C
+
+    V -->|Important / high-risk| GH2
+    GH2 -->|No material findings| DONE
+    GH2 -->|Actionable findings| FIX
+    FIX --> V
+
+    GH2 -->|Still materially uncertain| GX
+    GX -->|Diagnosis / recommendation| C
+
+    classDef owner fill:#052e16,stroke:#4ade80,color:#f0fdf4,stroke-width:2px;
+    classDef grok fill:#3b0764,stroke:#c084fc,color:#faf5ff,stroke-width:2px;
+    classDef verify fill:#1f2937,stroke:#94a3b8,color:#f8fafc;
+    classDef done fill:#172554,stroke:#60a5fa,color:#eff6ff,stroke-width:2px;
+    class C,FIX owner;
+    class GM,GH1,GH2,GX grok;
+    class V verify;
+    class DONE done;
+```
+
+### Routing contract
+
+```text
+Routine:
+  Composer -> validate -> diff inspection -> done
 
 Stalled:
   Composer -> Grok Medium advisor -> Composer -> validate
@@ -43,17 +230,12 @@ Architectural:
   Grok High architect -> Composer -> validate -> Grok High reviewer -> done
 
 Exceptional:
-  Composer/Grok High remain uncertain -> Grok xHigh advisor -> Composer -> validate
+  Grok xHigh only after credible Composer + Grok High attempts
 ```
 
-Use:
+### Fast mode policy: always off
 
-```bash
-groky-safe   # cursor-st --groky, normal Cursor approvals
-groky        # cursor-st --groky --yolo, full-autonomy behavior
-```
-
-Fast is always off:
+Every managed Cursor model is explicitly non-Fast.
 
 | Role | Model |
 | --- | --- |
@@ -64,72 +246,84 @@ Fast is always off:
 | Grok reviewer | `grok-4.6[effort=high,fast=false]` |
 | Grok escalation | `grok-4.6[effort=xhigh,fast=false]` |
 
-`cursor-st --groky` forces the selected Composer parent to non-Fast immediately before startup. Custom agents carry independent `fast=false` pins. The launcher doctor rejects managed custom agents that are missing the explicit pin. Prefer direct parent tools or pinned custom agents over built-in/automatic subagents whose speed variant cannot be verified.
+`cursor-st --groky` forces the selected Composer parent to non-Fast before startup. Custom agents carry independent `fast=false` pins, and the doctor rejects managed custom agents missing the explicit pin. Built-in/automatic subagents are not part of the managed Groky path when their speed variant cannot be verified.
 
-The Groky routing rule is installed as a dormant template (`alwaysApply: false`). `cursor-st --groky` renders an active project-local copy and swaps project-specific Sol/Terra/Luna links for Composer/Grok links. Normal `cursor-st` reverses that swap, keeping both Cursor hierarchies isolated.
-
-See `cursor/GROKY.md` and `cursor/prompts/groky-workflow.md`.
-
-### Codex — GPT Hierarchy v2
-
-The home Codex hierarchy is Terra-led and escalation-based:
-
-```text
-Routine:       Terra -> validate -> done
-Bounded:       Terra -> Luna -> Terra verify -> validate -> done
-Important:     Terra -> validate -> Sol High review -> Terra fix -> done
-Architectural: Sol High architect -> Terra -> validate -> Sol High review -> done
-Exceptional:   Terra -> Sol High -> Sol Max only if still materially uncertain
-```
-
-| Role | Model + effort | Responsibility |
-| --- | --- | --- |
-| Terra parent | `gpt-5.6-terra` + medium | Default task owner |
-| Luna worker | `gpt-5.6-luna` + medium | Optional bounded low-risk support |
-| Terra reviewer | `gpt-5.6-terra` + high | Optional routine second pass |
-| Sol architect | `gpt-5.6-sol` + high | Conditional architecture/acceptance criteria |
-| Sol reviewer | `gpt-5.6-sol` + high | Conditional independent senior review |
-| Sol Max advisor | `gpt-5.6-sol` + max | Exceptional escalation |
-
-The primary full-approval alias for this home GPT hierarchy is:
+### Commands
 
 ```bash
-cyolo   # codex-st --dangerously-bypass-approvals-and-sandbox
+# Normal Cursor approval behavior
+groky-safe "Implement the requested change and validate it."
+
+# Full-autonomy work workflow
+groky "Implement the reviewed change and validate it."
 ```
 
-`codexy` is retained only as a backward-compatible alias for the same command. Cursor's `fast` toggle is not part of the Codex model configuration.
+See [`cursor/GROKY.md`](cursor/GROKY.md) and [`cursor/prompts/groky-workflow.md`](cursor/prompts/groky-workflow.md).
 
-See `codex/HIERARCHY.md` and `codex/prompts/terra-led-workflow.md`.
+---
 
-## Prerequisites
+# Original Cursor — Sol / Terra / Luna
 
-Use Linux or WSL with Bash, Python 3.11+, Git, and `rg`. Install and sign in to the official Cursor CLI (`agent` or `cursor-agent`) and/or official `codex` executable separately.
+The original managed Cursor hierarchy remains available for compatibility.
+
+```mermaid
+flowchart LR
+    S[Sol High<br/>Parent<br/>fast=false] --> T[Terra Medium<br/>Implementation<br/>fast=false]
+    T --> L[Luna Medium<br/>Bounded Support<br/>fast=false]
+    L --> T
+    T --> R[Terra High<br/>Routine Review<br/>fast=false]
+    R --> S
+    S -. exceptional .-> SM[Sol Max<br/>fast=false]
+
+    classDef lead fill:#172554,stroke:#60a5fa,color:#eff6ff,stroke-width:2px;
+    classDef worker fill:#164e63,stroke:#22d3ee,color:#ecfeff;
+    classDef senior fill:#3b0764,stroke:#c084fc,color:#faf5ff;
+    class S lead;
+    class T,L,R worker;
+    class SM senior;
+```
+
+```bash
+cagent     # normal approvals
+cursory    # cursor-st --yolo
+```
+
+All managed models in this Cursor hierarchy are also pinned to `fast=false`.
+
+---
+
+## Command matrix
+
+| Command | CLI | Hierarchy | Approval behavior | Recommended use |
+| --- | --- | --- | --- | --- |
+| `cyolo` | Codex | GPT Hierarchy v2 | Full bypass | Home trusted/sandboxed execution |
+| `codex-st` | Codex | GPT Hierarchy v2 | Normal | Home standard use |
+| `groky` | Cursor | Composer + Grok | `--yolo` | Work trusted autonomous execution |
+| `groky-safe` | Cursor | Composer + Grok | Normal | Work standard use |
+| `cursory` | Cursor | Sol/Terra/Luna | `--yolo` | Legacy Cursor autonomous mode |
+| `cagent` | Cursor | Sol/Terra/Luna | Normal | Legacy Cursor standard mode |
+| `codexy` | Codex | GPT Hierarchy v2 | Full bypass | Compatibility alias for `cyolo` |
+| `cdx` | Codex | Raw Codex | Native | Intentionally bypass managed hierarchy |
+
+## Installation
+
+Prerequisites: Linux or WSL, Bash, Python 3.11+, Git, `rg`, and the official Cursor and/or Codex CLI already installed and authenticated.
 
 ```bash
 git clone git@github.com:YOUR-ACCOUNT/ai-cli-dotfiles.git
 cd ai-cli-dotfiles
-```
 
-## Validate before installation
-
-```bash
 ./doctor.sh --repo-only
 ./tests/smoke-test.sh
 git diff --check
-```
 
-## Install
-
-```bash
 ./install.sh --dry-run
 ./install.sh
 source ~/.bashrc
 ./doctor.sh
 ```
 
-The installer creates backups before changes, merges selected Cursor hooks/preferences rather than replacing them wholesale, and preserves an existing Codex `~/.codex/config.toml` unless `--replace-config` is explicitly used.
-
-Useful options:
+Useful install options:
 
 | Option | Effect |
 | --- | --- |
@@ -140,46 +334,22 @@ Useful options:
 | `--force` | Replace a protected changed/unrecognized target after backup |
 | `--full-access` | Store Cursor unrestricted approval/disabled sandbox preferences |
 
-## Everyday commands
+## Inspect the active workflows
 
 ```bash
-cd ~/projects/example-app
-
-# Existing Cursor hierarchy
-cagent "Inspect this project and propose a plan."
-cursory "Implement the reviewed change and validate it."
-
-# Composer + Grok Cursor hierarchy
-groky-safe "Implement the requested change and validate it."
-groky "Implement the reviewed change and validate it."
-
-# Home GPT/Codex hierarchy
-codex-st "Implement the requested change and validate it."
-cyolo "Implement the reviewed change and validate it."
-```
-
-| Command | Behavior |
-| --- | --- |
-| `cagent` | Managed Sol-led Cursor workflow, normal approvals |
-| `cursory` | Same Sol-led Cursor workflow with Cursor `--yolo` |
-| `groky-safe` | Composer 2.5 + Grok 4.6 hierarchy, normal approvals |
-| `groky` | Same Composer + Grok hierarchy with Cursor `--yolo` |
-| `codex-st` | Managed Terra-led GPT Hierarchy v2 with normal Codex approvals/sandbox |
-| `cyolo` | Primary GPT Hierarchy v2 alias with `--dangerously-bypass-approvals-and-sandbox` |
-| `codexy` | Backward-compatible alias for `cyolo` |
-| `cdx` | Raw official `codex` command |
-
-High-risk launchers change execution permissions, not model quality. Use `cursory`, `groky`, and `cyolo` only in trusted or appropriately sandboxed environments.
-
-## Inspect configured flows
-
-```bash
+# Original Cursor
 cursor-st --show-flow
 cursor-st --doctor
+
+# Groky
 cursor-st --groky --show-flow
 cursor-st --groky --doctor
+
+# GPT Hierarchy v2
 codex-st --show-flow
 codex-st --doctor
+
+# Alias helper
 cdoctor
 ```
 
@@ -202,27 +372,26 @@ cdoctor
 
 `CURSOR_HOME`, `CODEX_HOME`, `XDG_STATE_HOME`, and `XDG_CONFIG_HOME` are honored where applicable.
 
-## Maintenance
+## Maintenance and recovery
 
 ```bash
 ./doctor.sh --repo-only
 ./tests/smoke-test.sh
 git diff --check
+
+./backup-current.sh
+./backup-current.sh --include-codex
+
 ./uninstall.sh --dry-run
 ./uninstall.sh --restore
 ```
 
-To capture reviewed portable state:
-
-```bash
-./backup-current.sh
-./backup-current.sh --include-codex
-```
-
-The backup workflow preserves the selected-model `fast=false` parameter rather than stripping it.
+The backup workflow preserves Cursor's selected-model `fast=false` parameter.
 
 ## Security
 
-Never commit credentials, authentication JSON, private keys, `.env` files, sessions, logs, model history, local databases, machine trust entries, or other secrets. The scanner is a guardrail, not permission to commit sensitive material.
+Never commit credentials, authentication JSON, private keys, `.env` files, sessions, logs, model history, local databases, machine trust entries, or other secrets.
 
-Repository validation proves internal consistency of the portable files; it does not prove account access, model availability, or that unrestricted execution is safe in a particular project.
+The repository scanner is a guardrail, not permission to commit sensitive material. High-autonomy aliases (`cyolo`, `groky`, `cursory`) should only be used in trusted or appropriately sandboxed environments.
+
+Repository validation proves the portable configuration is internally consistent; it does not prove account access, model availability, or that unrestricted execution is safe in a particular project.
