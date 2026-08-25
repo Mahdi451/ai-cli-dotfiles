@@ -33,36 +33,37 @@ Exceptional:
 
 Grok agents are read-only. Composer owns implementation.
 
-## Model pins
+## Fast policy: always off
 
-Custom Grok subagents use explicit non-Fast model parameters:
+Fast mode is never part of the managed hierarchy.
 
 ```text
-grok-advisor     grok-4.6[effort=medium,fast=false]
-grok-architect   grok-4.6[effort=high,fast=false]
-grok-reviewer    grok-4.6[effort=high,fast=false]
-grok-escalation  grok-4.6[effort=xhigh,fast=false]
+Composer parent    composer-2.5 + fast=false
+Composer delegate  composer-2.5[fast=false]
+grok-advisor       grok-4.6[effort=medium,fast=false]
+grok-architect     grok-4.6[effort=high,fast=false]
+grok-reviewer      grok-4.6[effort=high,fast=false]
+grok-escalation    grok-4.6[effort=xhigh,fast=false]
 ```
 
-The parent launcher uses the official `composer-2.5` CLI model ID by default. Cursor's handling of standard versus Fast parent sessions has varied across CLI builds, so verify the effective tier on the target work machine:
+`cursor-st --groky` rewrites only Cursor's selected parent/explore model fields immediately before launch so Composer 2.5 is selected with `fast=false`. Caller `--model` overrides are rejected. Custom agents are independently pinned with bracket parameters, and `cursor-st --groky --doctor` rejects a managed custom agent that lacks an explicit `fast=false` model pin.
 
-```bash
-cursor-st --groky --doctor
-agent models
-```
-
-If a particular Cursor CLI build exposes a distinct verified non-Fast parent ID, set it without editing the repository:
-
-```bash
-export CURSOR_GROKY_PARENT_MODEL='<verified-local-composer-2.5-standard-id>'
-```
-
-Do not guess model slugs.
+Cursor's built-in/automatic subagents are not used as part of this hierarchy when their speed variant cannot be verified; prefer direct parent tools or the pinned custom agents.
 
 ## Workflow isolation
 
-The repository installs `groky-routing-template.mdc` as a dormant user rule with `alwaysApply: false`. When `cursor-st --groky` starts inside a project, it renders a managed project-local copy with `alwaysApply: true`, links the four Grok agents, and removes matching Sol/Terra/Luna project links. Those generated project files are excluded through `.git/info/exclude`.
+The repository installs `groky-routing-template.mdc` as a dormant user rule with `alwaysApply: false`. When `cursor-st --groky` starts inside a project, it renders a managed project-local copy with `alwaysApply: true`, links the Composer/Grok agents, and removes matching Sol/Terra/Luna project links. Those generated project files are excluded through `.git/info/exclude`.
 
 When normal `cursor-st` starts again, it removes the matching Groky project files before restoring the Sol/Terra/Luna project links. The user-level Grok agent definitions remain installed, but their descriptions and both routing rules explicitly restrict them to Groky sessions.
 
 `cursor-st --clean-project` removes matching managed files for both Cursor hierarchies.
+
+## Verification
+
+```bash
+cursor-st --groky --doctor
+cursor-st --groky --show-flow
+agent models
+```
+
+The first two commands verify the managed files and explicit non-Fast pins. `agent models` remains useful for confirming the account exposes Composer 2.5 and Grok 4.6.
