@@ -8,9 +8,21 @@ The Sol High parent leads ordinary repository inspection, planning, acceptance
 criteria, integrated-diff review, and final signoff. It may directly implement
 hard work when appropriate.
 
-This is the original Sol/Terra/Luna Cursor workflow. Do not use `grok-advisor`,
-`grok-architect`, `grok-reviewer`, or `grok-escalation` here; those agents are
-reserved for sessions launched with `cursor-st --groky`.
+This is the original Sol/Terra/Luna Cursor workflow. Do not use `composer-owner`,
+`grok-advisor`, `grok-architect`, `grok-reviewer`, or `grok-escalation` here;
+those agents are reserved for sessions launched with `cursor-st --groky`.
+
+## Non-Fast invariant
+
+Every managed model in this hierarchy must run with `fast=false`.
+
+- Sol High parent: `gpt-5.6-sol` + high reasoning, launcher-enforced `fast=false`.
+- Sol Max advisor: `gpt-5.6-sol-max[fast=false]`.
+- Terra implementer: `gpt-5.6-terra-medium[fast=false]`.
+- Terra reviewer: `gpt-5.6-terra-high[fast=false]`.
+- Luna worker: `gpt-5.6-luna-medium[fast=false]`.
+
+Do not switch Fast on to reduce latency. Prefer direct parent tools or the pinned custom agents over unspecified/built-in subagents whose speed variant cannot be verified.
 
 ## Classify the task
 
