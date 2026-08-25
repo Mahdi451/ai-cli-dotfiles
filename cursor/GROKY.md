@@ -46,9 +46,9 @@ grok-reviewer      grok-4.6[effort=high,fast=false]
 grok-escalation    grok-4.6[effort=xhigh,fast=false]
 ```
 
-`cursor-st --groky` rewrites only Cursor's selected parent/explore model fields immediately before launch so Composer 2.5 is selected with `fast=false`. Caller `--model` overrides are rejected. Custom agents are independently pinned with bracket parameters, and `cursor-st --groky --doctor` rejects a managed custom agent that lacks an explicit `fast=false` model pin.
+`cursor-st --groky` rewrites Cursor's selected Composer parent configuration to `fast=false` immediately before launch and rejects caller model overrides. It also sets the configured Explore model to an explicit non-Fast Composer selection as a defensive preference. Custom agents are independently pinned with bracket parameters, and `cursor-st --groky --doctor` rejects a managed custom agent that lacks an explicit `fast=false` model pin.
 
-Cursor's built-in/automatic subagents are not used as part of this hierarchy when their speed variant cannot be verified; prefer direct parent tools or the pinned custom agents.
+Because Cursor has had known issues around automatic/built-in subagent model variants, those are not part of the Groky hierarchy. Prefer direct parent tools or the pinned custom agents when model speed must be deterministic.
 
 ## Workflow isolation
 
