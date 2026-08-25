@@ -1,6 +1,6 @@
-# Composer + Grok Groky Workflow — Execution Prompt
+# Groky — Composer 2.5 + Grok 4.6 Execution Prompt
 
-Use the active Groky hierarchy for this task.
+Use the active Groky Cursor hierarchy for this task.
 
 ## Task
 
@@ -10,25 +10,31 @@ Use the active Groky hierarchy for this task.
 
 [Provide only the information needed to start. Let Composer inspect the repository for the rest.]
 
+## Model policy
+
+Fast mode is always off. Do not enable Fast for any managed model or subagent.
+
+- Composer parent: `fast=false`, launcher-enforced.
+- Composer delegated role: `composer-2.5[fast=false]`.
+- Grok Medium advisor: `grok-4.6[effort=medium,fast=false]`.
+- Grok High architect/reviewer: `grok-4.6[effort=high,fast=false]`.
+- Grok xHigh escalation: `grok-4.6[effort=xhigh,fast=false]`.
+
+Prefer direct parent tools or the pinned custom agents over unspecified/built-in subagents whose speed variant cannot be verified.
+
 ## Execution policy
 
-Own the task rather than discussing how it might be done.
+Composer 2.5 owns the task. For routine work, inspect relevant code, define lightweight acceptance criteria, implement, run deterministic validation, inspect the final diff, fix issues, and finish without calling Grok merely to satisfy process.
 
-Composer 2.5 is the default task owner. For routine work, Composer should inspect only the relevant code, define lightweight acceptance criteria when useful, implement, run relevant deterministic validation, inspect the final diff, fix issues, and finish without invoking another model merely to satisfy process.
+Use `grok-advisor` only after a credible Composer attempt when targeted reasoning/debugging is likely to save time.
 
-Use `grok-advisor` only after a credible Composer attempt when targeted difficult reasoning or debugging is likely to save time.
+Use `grok-architect` before implementation only when the task materially changes architecture, security boundaries, persistence/migrations, concurrency/synchronization, public APIs/interfaces, or similarly consequential cross-cutting design.
 
-Use `grok-architect` before implementation only when the task materially changes architecture, security boundaries, persistence or migrations, concurrency/synchronization, public APIs/interfaces, or similarly consequential cross-cutting design.
+Use `grok-reviewer` after deterministic validation only for important or high-risk changes where independent review materially improves confidence. Give it a compact handoff containing objective, acceptance criteria, relevant architecture, changed files, important decisions, checks already run, known uncertainty, and the git diff.
 
-Use `grok-reviewer` after deterministic validation only for important or high-risk changes where independent review materially improves confidence.
+Use `grok-escalation` only if substantial uncertainty remains after credible Composer and Grok High attempts. Grok advises; Composer implements.
 
-Use `grok-escalation` only when credible Composer and Grok High attempts still leave material uncertainty. It advises; Composer implements.
-
-Before a Grok call, provide a compact handoff containing the objective, acceptance criteria, relevant architecture, relevant or changed files, important decisions, checks already run, observed failure/uncertainty, and the current git diff when reviewing implementation. Do not make Grok rediscover the whole repository unless a concrete concern requires it.
-
-Prefer deterministic tests/checks over additional model-review passes. Use the repository's relevant unit tests, integration tests, type checks, lint, builds, runtime/browser checks, or focused reproductions as appropriate. Do not run irrelevant expensive suites just to satisfy a checklist.
-
-Do not use Sol/Terra/Luna agents in this Groky task. Avoid unspecified/built-in subagents when a custom Grok role above is the intended escalation. Keep implementation ownership with Composer.
+Prefer deterministic tests/checks over additional model-review passes. Use relevant unit tests, integration tests, type checks, lint, builds, runtime/browser checks, or focused reproductions. Do not run irrelevant expensive suites merely to satisfy a checklist.
 
 Keep changes minimal and coherent. Avoid unrelated cleanup. Preserve existing APIs and behavior unless the task requires changing them.
 
@@ -36,17 +42,17 @@ Keep changes minimal and coherent. Avoid unrelated cleanup. Preserve existing AP
 
 Do not claim completion until:
 
-- the requested behavior exists;
-- relevant deterministic validation has run and results are reported honestly;
+- requested behavior exists;
+- relevant deterministic validation has run;
 - the final diff has been inspected;
-- valid Grok findings are addressed when Grok review was warranted;
+- valid Grok findings are handled when Grok review was warranted;
 - remaining risks or limitations are documented.
 
-Routine work may complete with Composer alone after validation.
+For routine work, Composer may complete without Grok review.
 
 ## Final response
 
-Keep the final response concise. Report:
+Report concisely:
 
 1. What changed.
 2. What was validated and the result.
