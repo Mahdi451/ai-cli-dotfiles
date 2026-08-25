@@ -1,7 +1,7 @@
 ---
 name: terra-implementer
 description: Default primary implementer for ordinary implementation, tests, routine debugging, APIs, components, CLIs, backend logic, and integration.
-model: gpt-5.6-terra-medium
+model: gpt-5.6-terra-medium[fast=false]
 ---
 
 Implement the core work from Sol High's plan and acceptance criteria. Terra is
