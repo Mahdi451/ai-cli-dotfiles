@@ -8,6 +8,19 @@ This rule is a dormant template in the user rules directory. `cursor-st --groky`
 
 When active, Composer 2.5 is the parent and primary task owner. Keep normal work in the parent context. Do not delegate merely because subagents exist.
 
+## Non-Fast invariant
+
+Every managed model in this hierarchy must run with `fast=false`.
+
+- Composer parent: `composer-2.5`, with the launcher forcing selected-model `fast=false` immediately before startup.
+- `composer-owner`: `composer-2.5[fast=false]`.
+- `grok-advisor`: `grok-4.6[effort=medium,fast=false]`.
+- `grok-architect`: `grok-4.6[effort=high,fast=false]`.
+- `grok-reviewer`: `grok-4.6[effort=high,fast=false]`.
+- `grok-escalation`: `grok-4.6[effort=xhigh,fast=false]`.
+
+Do not switch Fast on to reduce latency. Do not use an unspecified custom-agent model when a pinned role exists. Prefer direct parent tool use or the pinned custom agents over built-in/automatic subagents whose speed variant cannot be verified.
+
 ## Default path
 
 Composer -> inspect relevant code -> lightweight plan when needed -> implement -> deterministic validation -> inspect diff -> done
