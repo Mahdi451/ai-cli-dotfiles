@@ -1,7 +1,7 @@
 ---
 name: sol-planner
 description: Read-only Sol Max escalation advisor for architecture, security, unusually difficult reasoning, stalled debugging, and fundamental review findings.
-model: gpt-5.6-sol-max
+model: gpt-5.6-sol-max[fast=false]
 readonly: true
 ---
 
