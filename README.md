@@ -6,20 +6,28 @@ Portable Linux/WSL configuration for the official Cursor and Codex CLIs. The rep
 
 The repository intentionally supports separate Cursor and Codex hierarchies.
 
-### Cursor — existing Sol/Terra/Luna workflow
-
-The original managed Cursor workflow remains available:
+### Cursor — Sol/Terra/Luna
 
 ```bash
 cagent   # cursor-st, normal approval behavior
 cyolo    # cursor-st --yolo
 ```
 
-This keeps Sol High as the parent, Terra as the primary implementer, Luna as bounded support, and Sol Max as escalation.
+Sol High is the parent, Terra is the primary implementer, Luna is bounded support, and Sol Max is escalation.
+
+All managed Cursor models are explicitly non-Fast:
+
+| Role | Model |
+| --- | --- |
+| Sol High parent | `gpt-5.6-sol` + high reasoning + `fast=false` |
+| Sol Max | `gpt-5.6-sol-max[fast=false]` |
+| Terra implementer | `gpt-5.6-terra-medium[fast=false]` |
+| Terra reviewer | `gpt-5.6-terra-high[fast=false]` |
+| Luna worker | `gpt-5.6-luna-medium[fast=false]` |
+
+`cursor-st` rewrites only the selected parent/explore model fields to the intended non-Fast values immediately before launch and rejects caller `--model` overrides.
 
 ### Cursor — Composer 2.5 + Grok 4.6 (Groky)
-
-The token-conscious work hierarchy uses Composer 2.5 as the parent and Grok 4.6 only where stronger reasoning materially improves reliability:
 
 ```text
 Routine:
@@ -45,54 +53,47 @@ groky-safe   # cursor-st --groky, normal Cursor approvals
 groky        # cursor-st --groky --yolo, full-autonomy behavior
 ```
 
-The custom Grok agents are pinned to explicit non-Fast variants:
+Fast is always off:
 
 | Role | Model |
 | --- | --- |
+| Composer parent | `composer-2.5` + `fast=false` |
+| Composer delegate | `composer-2.5[fast=false]` |
 | Grok advisor | `grok-4.6[effort=medium,fast=false]` |
 | Grok architect | `grok-4.6[effort=high,fast=false]` |
 | Grok reviewer | `grok-4.6[effort=high,fast=false]` |
 | Grok escalation | `grok-4.6[effort=xhigh,fast=false]` |
 
-The parent launcher requests the official `composer-2.5` CLI model ID. Cursor's parent standard/Fast handling has varied across CLI builds, so verify the effective tier on the target machine with `cursor-st --groky --doctor` and `agent models`. If the installed CLI exposes a distinct verified non-Fast Composer parent ID, set `CURSOR_GROKY_PARENT_MODEL` to that exact ID rather than guessing.
+`cursor-st --groky` forces the selected Composer parent and Explore model to non-Fast immediately before startup. Custom agents carry independent `fast=false` pins. The launcher doctor rejects managed custom agents that are missing the explicit pin. Prefer direct parent tools or pinned custom agents over built-in/automatic subagents whose speed variant cannot be verified.
 
-The Groky routing rule is installed as a dormant template (`alwaysApply: false`). `cursor-st --groky` renders an active project-local copy and swaps the project-specific Sol/Terra/Luna links for Grok links. Normal `cursor-st` reverses that swap, keeping both Cursor hierarchies isolated.
+The Groky routing rule is installed as a dormant template (`alwaysApply: false`). `cursor-st --groky` renders an active project-local copy and swaps project-specific Sol/Terra/Luna links for Composer/Grok links. Normal `cursor-st` reverses that swap, keeping both Cursor hierarchies isolated.
 
-See `cursor/GROKY.md` for the detailed contract.
+See `cursor/GROKY.md` and `cursor/prompts/groky-workflow.md`.
 
 ### Codex — GPT Hierarchy v2
 
 The home Codex hierarchy is Terra-led and escalation-based:
 
 ```text
-Default:
-  Terra Medium -> implement -> deterministic validation -> diff inspection -> done
-
-Bounded support:
-  Terra -> Luna -> Terra verifies/integrates -> validate -> done
-
-Important:
-  Terra -> validate -> Sol High review -> Terra fixes -> validate -> done
-
-Architectural:
-  Sol High architecture -> Terra implements -> validate -> Sol High review -> Terra fixes -> done
-
-Exceptional:
-  Terra attempts -> Sol High diagnosis -> Sol Max only if material uncertainty remains -> Terra implements
+Routine:       Terra -> validate -> done
+Bounded:       Terra -> Luna -> Terra verify -> validate -> done
+Important:     Terra -> validate -> Sol High review -> Terra fix -> done
+Architectural: Sol High architect -> Terra -> validate -> Sol High review -> done
+Exceptional:   Terra -> Sol High -> Sol Max only if still materially uncertain
 ```
 
 | Role | Model + effort | Responsibility |
 | --- | --- | --- |
-| Terra parent | `gpt-5.6-terra` + medium | Default task owner: inspect, plan normal work, implement, test, debug, integrate, self-review, finish |
+| Terra parent | `gpt-5.6-terra` + medium | Default task owner |
 | Luna worker | `gpt-5.6-luna` + medium | Optional bounded low-risk support |
-| Terra reviewer | `gpt-5.6-terra` + high | Optional read-only routine second pass, mainly for Luna work |
-| Sol architect | `gpt-5.6-sol` + high | Conditional read-only architecture and acceptance criteria |
-| Sol reviewer | `gpt-5.6-sol` + high | Conditional read-only independent senior review |
-| Sol Max advisor | `gpt-5.6-sol` + max | Exceptional read-only escalation |
+| Terra reviewer | `gpt-5.6-terra` + high | Optional routine second pass |
+| Sol architect | `gpt-5.6-sol` + high | Conditional architecture/acceptance criteria |
+| Sol reviewer | `gpt-5.6-sol` + high | Conditional independent senior review |
+| Sol Max advisor | `gpt-5.6-sol` + max | Exceptional escalation |
 
-The core rule is simple: Terra owns normal work. Luna is opportunistic. Sol High is conditional. Sol Max is exceptional. Deterministic validation should replace unnecessary model-on-model review whenever possible.
+Cursor's `fast` toggle is not part of the Codex model configuration.
 
-See `codex/HIERARCHY.md` for the routing contract and `codex/prompts/terra-led-workflow.md` for a reusable explicit execution prompt.
+See `codex/HIERARCHY.md` and `codex/prompts/terra-led-workflow.md`.
 
 ## Prerequisites
 
@@ -110,8 +111,6 @@ cd ai-cli-dotfiles
 ./tests/smoke-test.sh
 git diff --check
 ```
-
-`doctor.sh --repo-only` checks shell syntax, JSON/TOML validity, Python compilation, and the repository scanner without modifying the live installation.
 
 ## Install
 
@@ -140,37 +139,33 @@ Useful options:
 ```bash
 cd ~/projects/example-app
 
-# Original Cursor hierarchy
 cagent "Inspect this project and propose a plan."
 cyolo "Implement the reviewed change and validate it."
 
-# Composer + Grok Cursor hierarchy
 groky-safe "Implement the requested change and validate it."
 groky "Implement the reviewed change and validate it."
 
-# Terra-led Codex hierarchy
 codex-st "Implement the requested change and validate it."
 codexy "Implement the reviewed change and validate it."
 ```
 
 | Command | Behavior |
 | --- | --- |
-| `cagent` | Existing managed Sol-led Cursor workflow without adding `--yolo` |
+| `cagent` | Managed Sol-led Cursor workflow, normal approvals |
 | `cyolo` | Same Sol-led Cursor workflow with `--yolo` |
-| `groky-safe` | Composer 2.5 + Grok 4.6 hierarchy with normal Cursor approval behavior |
-| `groky` | Same Composer + Grok hierarchy with Cursor `--yolo` |
-| `codex-st` | Managed Terra-led GPT Hierarchy v2 using the compatibility-named `sol-terra-luna` profile |
+| `groky-safe` | Composer 2.5 + Grok 4.6 hierarchy, normal approvals |
+| `groky` | Same Composer + Grok hierarchy with `--yolo` |
+| `codex-st` | Managed Terra-led GPT Hierarchy v2 |
 | `codexy` | Same GPT Hierarchy v2 with `--dangerously-bypass-approvals-and-sandbox` |
 | `cdx` | Raw official `codex` command |
 
-The Codex profile filename `sol-terra-luna.config.toml` is intentionally retained for compatibility with existing installs; its parent model and routing behavior are Terra-led GPT Hierarchy v2.
-
 High-risk launchers change execution permissions, not model quality. Use `cyolo` and `groky` only in trusted projects. Use `codexy` only inside an external sandbox/trusted environment.
 
-## Inspect the configured flows
+## Inspect configured flows
 
 ```bash
 cursor-st --show-flow
+cursor-st --doctor
 cursor-st --groky --show-flow
 cursor-st --groky --doctor
 codex-st --show-flow
@@ -214,12 +209,7 @@ To capture reviewed portable state:
 ./backup-current.sh --include-codex
 ```
 
-To validate, commit, and optionally push reviewed local changes through the repository helper:
-
-```bash
-./update-repo.sh --message "Describe the reviewed change"
-./update-repo.sh --message "Describe the reviewed change" --include-codex --push
-```
+The backup workflow preserves the selected-model `fast=false` parameter rather than stripping it.
 
 ## Security
 
