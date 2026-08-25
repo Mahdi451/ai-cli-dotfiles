@@ -25,7 +25,20 @@ jobs:
         run: ./doctor.sh --repo-only
 
       - name: Smoke tests
-        run: ./tests/smoke-test.sh
+        env:
+          XDG_CONFIG_HOME: ${{ runner.temp }}/ai-cli-smoke-config
+        run: |
+          mkdir -p "$XDG_CONFIG_HOME/ai-cli-dotfiles"
+          cp shell/ai-cli-aliases.sh "$XDG_CONFIG_HOME/ai-cli-dotfiles/ai-cli-aliases.sh"
+          ./tests/smoke-test.sh
+
+      - name: Canonical alias checks
+        run: |
+          grep -Fqx "alias cyolo='codex-st --dangerously-bypass-approvals-and-sandbox'" shell/ai-cli-aliases.sh
+          grep -Fqx "alias groky='cursor-st --groky --yolo'" shell/ai-cli-aliases.sh
+          grep -Fqx "alias groky-safe='cursor-st --groky'" shell/ai-cli-aliases.sh
+          grep -Fqx "alias cursory='cursor-st --yolo'" shell/ai-cli-aliases.sh
+          grep -Fqx "alias cagent='cursor-st'" shell/ai-cli-aliases.sh
 
       - name: Whitespace check
         run: git diff --check
