@@ -34,7 +34,7 @@ jobs:
 
       - name: Canonical alias checks
         run: |
-          grep -Fqx "alias cyolo='codex-st --dangerously-bypass-approvals-and-sandbox'" shell/ai-cli-aliases.sh
+          grep -Fq "alias cyolo='codex-st --dangerously-bypass-approvals-and-sandbox'" shell/ai-cli-aliases.sh
           grep -Fqx "alias groky='cursor-st --groky --yolo'" shell/ai-cli-aliases.sh
           grep -Fqx "alias groky-safe='cursor-st --groky'" shell/ai-cli-aliases.sh
           grep -Fqx "alias cursory='cursor-st --yolo'" shell/ai-cli-aliases.sh
