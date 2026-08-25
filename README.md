@@ -2,26 +2,67 @@
 
 Portable Linux/WSL configuration for the official Cursor and Codex CLIs. The repository installs reviewed instructions, agent roles, guarded launchers, selected preferences, and shell aliases. It does not install either CLI, sign you in, or place credentials, sessions, history, caches, or machine-local trust state in Git.
 
-## Two model workflows
+## Model workflows
 
-The repository intentionally supports separate Cursor and Codex workflows.
+The repository intentionally supports separate Cursor and Codex hierarchies.
 
-### Cursor
+### Cursor — existing Sol/Terra/Luna workflow
 
-The existing Cursor workflow remains Sol-led. Cursor assets and model routing are unchanged by GPT Hierarchy v2.
+The original managed Cursor workflow remains available:
+
+```bash
+cagent   # cursor-st, normal approval behavior
+cyolo    # cursor-st --yolo
+```
+
+This keeps Sol High as the parent, Terra as the primary implementer, Luna as bounded support, and Sol Max as escalation.
+
+### Cursor — Composer 2.5 + Grok 4.6 (Groky)
+
+The token-conscious work hierarchy uses Composer 2.5 as the parent and Grok 4.6 only where stronger reasoning materially improves reliability:
+
+```text
+Routine:
+  Composer -> implement -> deterministic validation -> diff inspection -> done
+
+Stalled:
+  Composer -> Grok Medium advisor -> Composer -> validate
+
+Important:
+  Composer -> validate -> Grok High reviewer -> Composer fixes -> validate -> done
+
+Architectural:
+  Grok High architect -> Composer -> validate -> Grok High reviewer -> done
+
+Exceptional:
+  Composer/Grok High remain uncertain -> Grok xHigh advisor -> Composer -> validate
+```
 
 Use:
 
 ```bash
-cagent   # cursor-st, normal per-invocation behavior
-cyolo    # cursor-st --yolo
+groky-safe   # cursor-st --groky, normal Cursor approvals
+groky        # cursor-st --groky --yolo, full-autonomy behavior
 ```
 
-Before changing Cursor model pins, run `agent models` and use IDs available to the signed-in account.
+The custom Grok agents are pinned to explicit non-Fast variants:
+
+| Role | Model |
+| --- | --- |
+| Grok advisor | `grok-4.6[effort=medium,fast=false]` |
+| Grok architect | `grok-4.6[effort=high,fast=false]` |
+| Grok reviewer | `grok-4.6[effort=high,fast=false]` |
+| Grok escalation | `grok-4.6[effort=xhigh,fast=false]` |
+
+The parent launcher requests the official `composer-2.5` CLI model ID. Cursor's parent standard/Fast handling has varied across CLI builds, so verify the effective tier on the target machine with `cursor-st --groky --doctor` and `agent models`. If the installed CLI exposes a distinct verified non-Fast Composer parent ID, set `CURSOR_GROKY_PARENT_MODEL` to that exact ID rather than guessing.
+
+The Groky routing rule is installed as a dormant template (`alwaysApply: false`). `cursor-st --groky` renders an active project-local copy and swaps the project-specific Sol/Terra/Luna links for Grok links. Normal `cursor-st` reverses that swap, keeping both Cursor hierarchies isolated.
+
+See `cursor/GROKY.md` for the detailed contract.
 
 ### Codex — GPT Hierarchy v2
 
-The home Codex hierarchy is now Terra-led and escalation-based:
+The home Codex hierarchy is Terra-led and escalation-based:
 
 ```text
 Default:
@@ -57,8 +98,6 @@ See `codex/HIERARCHY.md` for the routing contract and `codex/prompts/terra-led-w
 
 Use Linux or WSL with Bash, Python 3.11+, Git, and `rg`. Install and sign in to the official Cursor CLI (`agent` or `cursor-agent`) and/or official `codex` executable separately.
 
-Clone and enter the repository:
-
 ```bash
 git clone git@github.com:YOUR-ACCOUNT/ai-cli-dotfiles.git
 cd ai-cli-dotfiles
@@ -76,15 +115,8 @@ git diff --check
 
 ## Install
 
-Preview first:
-
 ```bash
 ./install.sh --dry-run
-```
-
-Then install the normal symlink-based setup:
-
-```bash
 ./install.sh
 source ~/.bashrc
 ./doctor.sh
@@ -108,29 +140,39 @@ Useful options:
 ```bash
 cd ~/projects/example-app
 
+# Original Cursor hierarchy
 cagent "Inspect this project and propose a plan."
 cyolo "Implement the reviewed change and validate it."
 
+# Composer + Grok Cursor hierarchy
+groky-safe "Implement the requested change and validate it."
+groky "Implement the reviewed change and validate it."
+
+# Terra-led Codex hierarchy
 codex-st "Implement the requested change and validate it."
 codexy "Implement the reviewed change and validate it."
 ```
 
 | Command | Behavior |
 | --- | --- |
-| `cagent` | Managed Cursor workflow without adding `--yolo` |
-| `cyolo` | Same Cursor workflow with `--yolo` |
-| `codex-st` | Managed GPT Hierarchy v2 using the compatibility-named `sol-terra-luna` profile |
+| `cagent` | Existing managed Sol-led Cursor workflow without adding `--yolo` |
+| `cyolo` | Same Sol-led Cursor workflow with `--yolo` |
+| `groky-safe` | Composer 2.5 + Grok 4.6 hierarchy with normal Cursor approval behavior |
+| `groky` | Same Composer + Grok hierarchy with Cursor `--yolo` |
+| `codex-st` | Managed Terra-led GPT Hierarchy v2 using the compatibility-named `sol-terra-luna` profile |
 | `codexy` | Same GPT Hierarchy v2 with `--dangerously-bypass-approvals-and-sandbox` |
 | `cdx` | Raw official `codex` command |
 
-The Codex profile filename `sol-terra-luna.config.toml` is intentionally retained for compatibility with existing installs; its parent model and routing behavior are now Terra-led GPT Hierarchy v2.
+The Codex profile filename `sol-terra-luna.config.toml` is intentionally retained for compatibility with existing installs; its parent model and routing behavior are Terra-led GPT Hierarchy v2.
 
-High-risk launchers change execution permissions, not model quality. Use `cyolo` only in a trusted project and `codexy` only inside an external sandbox/trusted environment.
+High-risk launchers change execution permissions, not model quality. Use `cyolo` and `groky` only in trusted projects. Use `codexy` only inside an external sandbox/trusted environment.
 
 ## Inspect the configured flows
 
 ```bash
 cursor-st --show-flow
+cursor-st --groky --show-flow
+cursor-st --groky --doctor
 codex-st --show-flow
 codex-st --doctor
 cdoctor

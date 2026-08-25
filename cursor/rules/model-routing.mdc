@@ -8,6 +8,10 @@ The Sol High parent leads ordinary repository inspection, planning, acceptance
 criteria, integrated-diff review, and final signoff. It may directly implement
 hard work when appropriate.
 
+This is the original Sol/Terra/Luna Cursor workflow. Do not use `grok-advisor`,
+`grok-architect`, `grok-reviewer`, or `grok-escalation` here; those agents are
+reserved for sessions launched with `cursor-st --groky`.
+
 ## Classify the task
 
 A bounded Luna task is low-risk only when all of the following are true:

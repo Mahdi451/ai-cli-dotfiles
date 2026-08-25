@@ -6,8 +6,8 @@ ROOT="$(cd -- "$(dirname -- "$0")" && pwd -P)"
 CURSOR_HOME="${CURSOR_HOME:-$HOME/.cursor}" CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
 STAGING="$(mktemp -d)"; trap 'rm -rf -- "$STAGING"' EXIT
 copy() { [[ -f "$1" ]] || { printf 'Missing required portable source: %s\n' "$1" >&2; exit 1; }; mkdir -p "$STAGING/$(dirname "$2")"; cp -- "$1" "$STAGING/$2"; }
-for n in sol-planner.md luna-worker.md terra-implementer.md terra-reviewer.md; do copy "$CURSOR_HOME/agents/$n" "cursor/agents/$n"; done
-for n in core.mdc execution-safety.mdc one-line-commands.mdc token-efficiency.mdc git-filesystem-safety.mdc minimal-diff.mdc model-routing.mdc verification-before-done.mdc; do copy "$CURSOR_HOME/rules/$n" "cursor/rules/$n"; done
+for n in sol-planner.md luna-worker.md terra-implementer.md terra-reviewer.md grok-advisor.md grok-architect.md grok-reviewer.md grok-escalation.md; do copy "$CURSOR_HOME/agents/$n" "cursor/agents/$n"; done
+for n in core.mdc execution-safety.mdc one-line-commands.mdc token-efficiency.mdc git-filesystem-safety.mdc minimal-diff.mdc model-routing.mdc groky-routing-template.mdc verification-before-done.mdc; do copy "$CURSOR_HOME/rules/$n" "cursor/rules/$n"; done
 copy "$CURSOR_HOME/hooks/cursor-st-command-guard.py" cursor/hooks/cursor-st-command-guard.py
 copy "$CURSOR_HOME/statusline.py" cursor/statusline.py
 copy "$HOME/.local/bin/cursor-st" bin/cursor-st
@@ -42,7 +42,7 @@ if [[ "$INCLUDE_CODEX" == true ]]; then
   [[ -f "$CODEX_HOME/rules/default.rules" ]] && copy "$CODEX_HOME/rules/default.rules" codex/rules/default.rules
   copy "$HOME/.local/bin/codex-st" bin/codex-st
   copy "$CODEX_HOME/sol-terra-luna.config.toml" codex/config/sol-terra-luna.config.toml
-  for n in sol-planner.toml luna-worker.toml terra-implementer.toml terra-reviewer.toml; do copy "$CODEX_HOME/agents/$n" "codex/agents/$n"; done
+  for n in sol-planner.toml sol-architect.toml sol-reviewer.toml luna-worker.toml terra-implementer.toml terra-reviewer.toml; do copy "$CODEX_HOME/agents/$n" "codex/agents/$n"; done
   python3 "$ROOT/lib/manage.py" sanitize-codex-config --source "$CODEX_HOME/config.toml" --destination "$STAGING/codex/config/config.toml"
 fi
 python3 "$ROOT/lib/manage.py" scan "$STAGING"
