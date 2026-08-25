@@ -1,25 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-WORKFLOW_VERSION='6.0.0'
+WORKFLOW_VERSION='6.1.0'
 MODE='sol'
 if [[ "${1:-}" == --groky ]]; then
   MODE='groky'
   shift
 fi
 
-SOL_PARENT_MODEL="${CURSOR_SOL_HIGH_MODEL:-gpt-5.6-sol-high}"
-SOL_MAX_MODEL="${CURSOR_SOL_MAX_MODEL:-gpt-5.6-sol-max}"
-TERRA_MODEL="${CURSOR_TERRA_MODEL:-gpt-5.6-terra-medium}"
-TERRA_REVIEW_MODEL="${CURSOR_TERRA_REVIEW_MODEL:-gpt-5.6-terra-high}"
-GROKY_PARENT_MODEL="${CURSOR_GROKY_PARENT_MODEL:-composer-2.5}"
 CURSOR_HOME="${CURSOR_HOME:-$HOME/.cursor}"
-
-if [[ "$MODE" == groky ]]; then
-  PARENT_MODEL="$GROKY_PARENT_MODEL"
-else
-  PARENT_MODEL="$SOL_PARENT_MODEL"
-fi
+SOL_PARENT_DISPLAY='gpt-5.6-sol high [fast=false]'
+GROKY_PARENT_DISPLAY='composer-2.5 [fast=false]'
 
 find_agent_bin() {
   if command -v agent >/dev/null 2>&1; then
@@ -105,12 +96,14 @@ SOL_TARGETS=(
   ".cursor/rules/global-model-routing.mdc"
 )
 GROKY_SOURCES=(
+  "$CURSOR_HOME/agents/composer-owner.md"
   "$CURSOR_HOME/agents/grok-advisor.md"
   "$CURSOR_HOME/agents/grok-architect.md"
   "$CURSOR_HOME/agents/grok-reviewer.md"
   "$CURSOR_HOME/agents/grok-escalation.md"
 )
 GROKY_TARGETS=(
+  ".cursor/agents/global-groky-composer-owner.md"
   ".cursor/agents/global-groky-advisor.md"
   ".cursor/agents/global-groky-architect.md"
   ".cursor/agents/global-groky-reviewer.md"
@@ -135,26 +128,19 @@ remove_links() {
   local kind="$1" index source target
   case "$kind" in
     sol)
-      for index in "${!SOL_SOURCES[@]}"; do source="${SOL_SOURCES[$index]}"; target="${SOL_TARGETS[$index]}"; remove_managed_link "$source" "$ROOT/$target"; remove_from_git_exclude "$ROOT" "$target"; done
-      ;;
+      for index in "${!SOL_SOURCES[@]}"; do source="${SOL_SOURCES[$index]}"; target="${SOL_TARGETS[$index]}"; remove_managed_link "$source" "$ROOT/$target"; remove_from_git_exclude "$ROOT" "$target"; done ;;
     groky)
-      for index in "${!GROKY_SOURCES[@]}"; do source="${GROKY_SOURCES[$index]}"; target="${GROKY_TARGETS[$index]}"; remove_managed_link "$source" "$ROOT/$target"; remove_from_git_exclude "$ROOT" "$target"; done
-      ;;
+      for index in "${!GROKY_SOURCES[@]}"; do source="${GROKY_SOURCES[$index]}"; target="${GROKY_TARGETS[$index]}"; remove_managed_link "$source" "$ROOT/$target"; remove_from_git_exclude "$ROOT" "$target"; done ;;
     shared)
-      for index in "${!SHARED_SOURCES[@]}"; do source="${SHARED_SOURCES[$index]}"; target="${SHARED_TARGETS[$index]}"; remove_managed_link "$source" "$ROOT/$target"; remove_from_git_exclude "$ROOT" "$target"; done
-      ;;
+      for index in "${!SHARED_SOURCES[@]}"; do source="${SHARED_SOURCES[$index]}"; target="${SHARED_TARGETS[$index]}"; remove_managed_link "$source" "$ROOT/$target"; remove_from_git_exclude "$ROOT" "$target"; done ;;
     legacy)
-      for index in "${!LEGACY_SOURCES[@]}"; do source="${LEGACY_SOURCES[$index]}"; target="${LEGACY_TARGETS[$index]}"; remove_managed_link "$source" "$ROOT/$target"; remove_from_git_exclude "$ROOT" "$target"; done
-      ;;
+      for index in "${!LEGACY_SOURCES[@]}"; do source="${LEGACY_SOURCES[$index]}"; target="${LEGACY_TARGETS[$index]}"; remove_managed_link "$source" "$ROOT/$target"; remove_from_git_exclude "$ROOT" "$target"; done ;;
   esac
 }
 
 render_groky_rule() {
   local destination="$1"
-  [[ -f "$GROKY_TEMPLATE" ]] || {
-    printf 'Missing Groky routing template: %s\n' "$GROKY_TEMPLATE" >&2
-    exit 1
-  }
+  [[ -f "$GROKY_TEMPLATE" ]] || { printf 'Missing Groky routing template: %s\n' "$GROKY_TEMPLATE" >&2; exit 1; }
   sed '0,/^alwaysApply: false$/s//alwaysApply: true/' "$GROKY_TEMPLATE" > "$destination"
 }
 
@@ -162,19 +148,10 @@ remove_groky_rule() {
   local target="$ROOT/$GROKY_RULE_TARGET" temp
   remove_from_git_exclude "$ROOT" "$GROKY_RULE_TARGET"
   [[ -e "$target" || -L "$target" ]] || return 0
-  [[ -f "$target" && ! -L "$target" ]] || {
-    printf 'Refusing to remove unrelated Groky rule target: %s\n' "$target" >&2
-    exit 1
-  }
+  [[ -f "$target" && ! -L "$target" ]] || { printf 'Refusing to remove unrelated Groky rule target: %s\n' "$target" >&2; exit 1; }
   temp="$(mktemp)"
   render_groky_rule "$temp"
-  if cmp -s -- "$target" "$temp"; then
-    rm -f -- "$target"
-  else
-    rm -f -- "$temp"
-    printf 'Refusing to remove modified Groky rule target: %s\n' "$target" >&2
-    exit 1
-  fi
+  if cmp -s -- "$target" "$temp"; then rm -f -- "$target"; else rm -f -- "$temp"; printf 'Refusing to remove modified Groky rule target: %s\n' "$target" >&2; exit 1; fi
   rm -f -- "$temp"
 }
 
@@ -184,11 +161,7 @@ ensure_groky_rule() {
   temp="$(mktemp)"
   render_groky_rule "$temp"
   if [[ -e "$target" || -L "$target" ]]; then
-    [[ -f "$target" && ! -L "$target" ]] && cmp -s -- "$target" "$temp" || {
-      rm -f -- "$temp"
-      printf 'Refusing to replace unrelated project file: %s\n' "$target" >&2
-      exit 1
-    }
+    [[ -f "$target" && ! -L "$target" ]] && cmp -s -- "$target" "$temp" || { rm -f -- "$temp"; printf 'Refusing to replace unrelated project file: %s\n' "$target" >&2; exit 1; }
   else
     cp -- "$temp" "$target"
   fi
@@ -200,14 +173,11 @@ link_group() {
   local kind="$1" index source target
   case "$kind" in
     sol)
-      for index in "${!SOL_SOURCES[@]}"; do source="${SOL_SOURCES[$index]}"; target="${SOL_TARGETS[$index]}"; [[ -f "$source" ]] || { printf 'Missing managed Cursor file: %s\n' "$source" >&2; exit 1; }; safe_link "$source" "$ROOT/$target"; exclude_from_git "$ROOT" "$target"; done
-      ;;
+      for index in "${!SOL_SOURCES[@]}"; do source="${SOL_SOURCES[$index]}"; target="${SOL_TARGETS[$index]}"; [[ -f "$source" ]] || { printf 'Missing managed Cursor file: %s\n' "$source" >&2; exit 1; }; safe_link "$source" "$ROOT/$target"; exclude_from_git "$ROOT" "$target"; done ;;
     groky)
-      for index in "${!GROKY_SOURCES[@]}"; do source="${GROKY_SOURCES[$index]}"; target="${GROKY_TARGETS[$index]}"; [[ -f "$source" ]] || { printf 'Missing managed Groky file: %s\n' "$source" >&2; exit 1; }; safe_link "$source" "$ROOT/$target"; exclude_from_git "$ROOT" "$target"; done
-      ;;
+      for index in "${!GROKY_SOURCES[@]}"; do source="${GROKY_SOURCES[$index]}"; target="${GROKY_TARGETS[$index]}"; [[ -f "$source" ]] || { printf 'Missing managed Groky file: %s\n' "$source" >&2; exit 1; }; safe_link "$source" "$ROOT/$target"; exclude_from_git "$ROOT" "$target"; done ;;
     shared)
-      for index in "${!SHARED_SOURCES[@]}"; do source="${SHARED_SOURCES[$index]}"; target="${SHARED_TARGETS[$index]}"; [[ -f "$source" ]] || { printf 'Missing managed Cursor file: %s\n' "$source" >&2; exit 1; }; safe_link "$source" "$ROOT/$target"; exclude_from_git "$ROOT" "$target"; done
-      ;;
+      for index in "${!SHARED_SOURCES[@]}"; do source="${SHARED_SOURCES[$index]}"; target="${SHARED_TARGETS[$index]}"; [[ -f "$source" ]] || { printf 'Missing managed Cursor file: %s\n' "$source" >&2; exit 1; }; safe_link "$source" "$ROOT/$target"; exclude_from_git "$ROOT" "$target"; done ;;
   esac
 }
 
@@ -239,16 +209,74 @@ clean_project() {
   printf 'Removed matching managed project files from: %s\n' "$ROOT"
 }
 
+assert_custom_agents_nonfast() {
+  local source failures=0
+  if [[ "$MODE" == groky ]]; then
+    for source in "${GROKY_SOURCES[@]}"; do
+      [[ "$source" == *.md ]] || continue
+      grep -Eq '^model: .*\[.*fast=false.*\]$' "$source" || { printf 'Missing explicit fast=false model pin: %s\n' "$source" >&2; failures=$((failures + 1)); }
+    done
+  else
+    for source in "$CURSOR_HOME/agents/sol-planner.md" "$CURSOR_HOME/agents/luna-worker.md" "$CURSOR_HOME/agents/terra-implementer.md" "$CURSOR_HOME/agents/terra-reviewer.md"; do
+      grep -Eq '^model: .*\[.*fast=false.*\]$' "$source" || { printf 'Missing explicit fast=false model pin: %s\n' "$source" >&2; failures=$((failures + 1)); }
+    done
+  fi
+  return "$failures"
+}
+
+select_parent_nonfast() {
+  local config="$CURSOR_HOME/cli-config.json"
+  [[ ! -L "$config" ]] || { printf 'Refusing to rewrite symlinked Cursor config: %s\n' "$config" >&2; exit 1; }
+  mkdir -p -- "$CURSOR_HOME"
+  python3 - "$config" "$MODE" <<'PY'
+import json, os, stat, sys, tempfile
+path, mode = sys.argv[1:]
+try:
+    data = json.load(open(path, encoding="utf-8")) if os.path.exists(path) else {"version": 1}
+except (OSError, json.JSONDecodeError) as exc:
+    raise SystemExit(f"cannot enforce non-Fast Cursor parent: {exc}")
+if not isinstance(data, dict):
+    raise SystemExit("cannot enforce non-Fast Cursor parent: config root must be an object")
+if mode == "groky":
+    model_id = "composer-2.5"
+    parameters = [{"id": "fast", "value": "false"}]
+    explore = "composer-2.5[fast=false]"
+else:
+    model_id = "gpt-5.6-sol"
+    parameters = [{"id": "reasoning", "value": "high"}, {"id": "fast", "value": "false"}]
+    explore = "gpt-5.6-sol-high[fast=false]"
+data["model"] = {"modelId": model_id}
+data["selectedModel"] = {"modelId": model_id, "parameters": parameters}
+data["exploreSubagentModel"] = explore
+parent = os.path.dirname(path) or "."
+os.makedirs(parent, exist_ok=True)
+mode_bits = stat.S_IMODE(os.stat(path).st_mode) if os.path.exists(path) else 0o600
+fd, tmp = tempfile.mkstemp(prefix=".cli-config.", suffix=".tmp", dir=parent)
+try:
+    with os.fdopen(fd, "w", encoding="utf-8") as handle:
+        os.fchmod(handle.fileno(), mode_bits)
+        json.dump(data, handle, indent=2)
+        handle.write("\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(tmp, path)
+finally:
+    try: os.unlink(tmp)
+    except FileNotFoundError: pass
+PY
+}
+
 show_flow() {
   if [[ "$MODE" == groky ]]; then
     cat <<EOF
 Workflow version:   $WORKFLOW_VERSION
 Mode:               Composer + Grok (Groky)
-Composer parent:    $GROKY_PARENT_MODEL
-Grok advisor:       grok-4.6 medium, standard/non-fast, read-only
-Grok architect:     grok-4.6 high, standard/non-fast, read-only
-Grok reviewer:      grok-4.6 high, standard/non-fast, read-only
-Grok escalation:    grok-4.6 xhigh, standard/non-fast, read-only
+Composer parent:    $GROKY_PARENT_DISPLAY
+Composer delegate:  composer-2.5 [fast=false]
+Grok advisor:       grok-4.6 medium [fast=false], read-only
+Grok architect:     grok-4.6 high [fast=false], read-only
+Grok reviewer:      grok-4.6 high [fast=false], read-only
+Grok escalation:    grok-4.6 xhigh [fast=false], read-only
 
 Default:
   Composer -> implement -> deterministic validation -> diff inspection -> done
@@ -259,28 +287,28 @@ Architectural:
 Exceptional:
   Composer/Grok High remain materially uncertain -> Grok xHigh advice -> Composer
 
-Parent speed note:
-  This launcher requests Cursor's official Composer 2.5 CLI model ID. Verify the
-  effective standard/Fast tier on the installed CLI with `agent models` and the
-  session UI. Override CURSOR_GROKY_PARENT_MODEL only with a verified local ID.
+Fast policy:
+  Every managed model is pinned to fast=false. The launcher rewrites only the
+  selected parent/explore model fields to non-Fast values immediately before launch.
 EOF
   else
     cat <<EOF
 Workflow version:   $WORKFLOW_VERSION
 Mode:               Sol/Terra/Luna
-Sol High parent:    $SOL_PARENT_MODEL
-Sol Max advisor:    $SOL_MAX_MODEL (read-only escalation only)
-Luna worker:        gpt-5.6-luna-medium
-Terra implementer:  $TERRA_MODEL
-Terra reviewer:     $TERRA_REVIEW_MODEL (read-only advisory)
+Sol High parent:    $SOL_PARENT_DISPLAY
+Sol Max advisor:    gpt-5.6-sol-max [fast=false], read-only escalation only
+Luna worker:        gpt-5.6-luna-medium [fast=false]
+Terra implementer:  gpt-5.6-terra-medium [fast=false]
+Terra reviewer:     gpt-5.6-terra-high [fast=false], read-only advisory
 
 Flow:
   Sol High inspect/plan/acceptance -> Terra core implementation/tests
   -> Luna bounded support -> Terra integration/routine review
   -> Sol High complete-diff review and final signoff
 
-  Sol Max is read-only and escalates only for architecture/security risk,
-  unusually difficult reasoning, stalled debugging, or fundamental findings.
+Fast policy:
+  Every managed model is pinned to fast=false. The launcher rewrites only the
+  selected parent/explore model fields to non-Fast values immediately before launch.
 EOF
   fi
 }
@@ -304,10 +332,11 @@ doctor() {
       [[ -f "$source" ]] || { printf 'Missing: %s\n' "$source" >&2; failures=$((failures + 1)); }
     done
   fi
+  assert_custom_agents_nonfast || failures=$((failures + $?))
   show_flow
   printf 'Cursor CLI: %s\n' "$path"
   if ((failures)); then return 1; fi
-  printf 'Workflow files: OK\n'
+  printf 'Workflow files and fast=false pins: OK\n'
 }
 
 case "${1:-}" in
@@ -319,14 +348,8 @@ esac
 for arg in "$@"; do
   [[ "$arg" == -- ]] && break
   case "$arg" in
-    --groky)
-      printf 'Place --groky immediately after cursor-st (the aliases already do this).\n' >&2
-      exit 2
-      ;;
-    --model|--model=*|-m|-m*)
-      printf 'cursor-st manages the parent model for the selected hierarchy; do not pass --model/-m.\n' >&2
-      exit 2
-      ;;
+    --groky) printf 'Place --groky immediately after cursor-st (the aliases already do this).\n' >&2; exit 2 ;;
+    --model|--model=*|-m|-m*) printf 'cursor-st manages the parent model and fast=false policy; do not pass --model/-m.\n' >&2; exit 2 ;;
   esac
 done
 
@@ -336,5 +359,7 @@ if [[ "${1:-}" == --setup-only ]]; then
   exit 0
 fi
 
+assert_custom_agents_nonfast
+select_parent_nonfast
 cd -- "$ROOT"
-exec "$(find_agent_bin)" --model "$PARENT_MODEL" "$@"
+exec "$(find_agent_bin)" "$@"
