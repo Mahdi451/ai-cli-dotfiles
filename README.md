@@ -25,7 +25,7 @@ All managed Cursor models are explicitly non-Fast:
 | Terra reviewer | `gpt-5.6-terra-high[fast=false]` |
 | Luna worker | `gpt-5.6-luna-medium[fast=false]` |
 
-`cursor-st` rewrites only the selected parent/explore model fields to the intended non-Fast values immediately before launch and rejects caller `--model` overrides.
+`cursor-st` rewrites only the selected parent model fields to the intended non-Fast values immediately before launch and rejects caller `--model` overrides.
 
 ### Cursor — Composer 2.5 + Grok 4.6 (Groky)
 
@@ -64,7 +64,7 @@ Fast is always off:
 | Grok reviewer | `grok-4.6[effort=high,fast=false]` |
 | Grok escalation | `grok-4.6[effort=xhigh,fast=false]` |
 
-`cursor-st --groky` forces the selected Composer parent and Explore model to non-Fast immediately before startup. Custom agents carry independent `fast=false` pins. The launcher doctor rejects managed custom agents that are missing the explicit pin. Prefer direct parent tools or pinned custom agents over built-in/automatic subagents whose speed variant cannot be verified.
+`cursor-st --groky` forces the selected Composer parent to non-Fast immediately before startup. Custom agents carry independent `fast=false` pins. The launcher doctor rejects managed custom agents that are missing the explicit pin. Prefer direct parent tools or pinned custom agents over built-in/automatic subagents whose speed variant cannot be verified.
 
 The Groky routing rule is installed as a dormant template (`alwaysApply: false`). `cursor-st --groky` renders an active project-local copy and swaps project-specific Sol/Terra/Luna links for Composer/Grok links. Normal `cursor-st` reverses that swap, keeping both Cursor hierarchies isolated.
 
