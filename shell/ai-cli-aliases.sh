@@ -9,7 +9,8 @@ alias cdoctor='cursor-st --doctor'
 alias groky='cursor-st --groky --yolo'
 alias groky-safe='cursor-st --groky'
 
-# Codex GPT Hierarchy v2. Codex has no Cursor Fast toggle.
+# Codex GPT Hierarchy v2. `cyolo` is the canonical full-approval home alias.
+# Codex has no Cursor Fast toggle.
 if command -v codex >/dev/null 2>&1; then
   alias cdx='codex'
   if command -v codex-st >/dev/null 2>&1; then
