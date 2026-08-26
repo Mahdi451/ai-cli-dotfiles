@@ -1,0 +1,26 @@
+flowchart TD
+    L[Large task] --> P[Split plan]
+    P --> A[Worktree A\nComposer 2.5\n../project-composer]
+    P --> B[Worktree B\nGrok 4.6 High\n../project-grok]
+    P --> C[Worktree C\nIntegration\n../project-integrate]
+
+    A --> A1[Inspect] --> A2[Implement] --> A3[Commit to branch]
+    B --> B1[Inspect] --> B2[Implement] --> B3[Commit to branch]
+    A3 --> C1[Cherry-pick or merge]
+    B3 --> C1
+    C --> C1
+    C1 --> V[Tests / lint / build]
+    V --> T[Terra High review]
+    T --> D([Done])
+
+    BAD[Do NOT: Composer + Grok editing\nthe same file at the same time]
+    GOOD[Do instead:\nseparate branches + worktrees\nclear file ownership\ndeterministic integration]
+
+    classDef cursor fill:#052e16,stroke:#34d399,color:#ecfdf5,stroke-width:2px;
+    classDef codex fill:#172554,stroke:#60a5fa,color:#eff6ff,stroke-width:2px;
+    classDef neutral fill:#111827,stroke:#9ca3af,color:#f9fafb;
+    classDef bad fill:#450a0a,stroke:#f87171,color:#fef2f2,stroke-width:2px;
+    class A,B,A1,A2,A3,B1,B2,B3 cursor;
+    class T codex;
+    class C,C1,V,L,P neutral;
+    class BAD bad;
