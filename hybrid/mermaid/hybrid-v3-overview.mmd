@@ -1,0 +1,31 @@
+flowchart TD
+    U([You]) --> H[hybrid / hyolo]
+    H --> R[Deterministic Router]
+    R -->|Normal| C[Composer 2.5\nDefault Builder]
+    R -->|Complex| G[Grok 4.6 High\nSenior Builder]
+    C --> V[Tests / Lint / Build / Validation]
+    G --> V
+    V --> Q{Review warranted?}
+    Q -->|No| D([Done])
+    Q -->|Yes| T[Codex Terra High\nIndependent Reviewer]
+    T --> I{Issue found?}
+    I -->|No| D
+    I -->|Yes| F[Builder fixes]
+    F --> V
+
+    S[Codex Sol High\nArchitect] --> B[Composer or Grok builds]
+    B --> V2[Validation]
+    V2 --> T2[Terra High review]
+    T2 --> D2([Done])
+    X[Sol Max\nExceptional escalation only]
+
+    classDef cursor fill:#052e16,stroke:#34d399,color:#ecfdf5,stroke-width:2px;
+    classDef codex fill:#172554,stroke:#60a5fa,color:#eff6ff,stroke-width:2px;
+    classDef sol fill:#3b0764,stroke:#c084fc,color:#faf5ff,stroke-width:2px;
+    classDef neutral fill:#111827,stroke:#9ca3af,color:#f9fafb;
+    classDef done fill:#052e16,stroke:#4ade80,color:#f0fdf4,stroke-width:2px;
+    class C,G,F,B cursor;
+    class T,T2 codex;
+    class S,X sol;
+    class R,V,V2,Q,I neutral;
+    class D,D2 done;
