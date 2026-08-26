@@ -1,0 +1,26 @@
+flowchart TD
+    START([Start a coding task]) --> Q1{Routine and bounded?}
+    Q1 -->|Yes| C[Composer 2.5\nDefault builder]
+    Q1 -->|No| Q2{Hard, ambiguous, or long-running?}
+    Q2 -->|Yes| G[Grok 4.6 High\nSenior builder]
+    Q2 -->|No| C
+    C --> V[Run tests / lint / build / validate]
+    G --> V
+    V --> Q3{Important or high-risk?}
+    Q3 -->|No| DONE([Done])
+    Q3 -->|Yes| T[Terra High\nIndependent reviewer]
+    T --> Q4{Architecture, migrations, security,\nconcurrency, or public APIs involved?}
+    Q4 -->|Yes| S[Sol High\nArchitect first]
+    S --> C
+    Q4 -->|No| Q5{Still materially uncertain after review?}
+    Q5 -->|No| DONE
+    Q5 -->|Yes| X[Sol Max\nExceptional escalation only]
+
+    classDef cursor fill:#052e16,stroke:#34d399,color:#ecfdf5,stroke-width:2px;
+    classDef codex fill:#172554,stroke:#60a5fa,color:#eff6ff,stroke-width:2px;
+    classDef sol fill:#3b0764,stroke:#c084fc,color:#faf5ff,stroke-width:2px;
+    classDef neutral fill:#111827,stroke:#9ca3af,color:#f9fafb;
+    class C,G cursor;
+    class T codex;
+    class S,X sol;
+    class Q1,Q2,Q3,Q4,Q5,V neutral;
