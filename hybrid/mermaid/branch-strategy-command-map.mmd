@@ -1,0 +1,30 @@
+flowchart TD
+    MAIN[main\nstable production path] --> BR[hybrid-cursor-codex-v3\nexperimental branch]
+    BR --> TEST[Test]
+    TEST --> ITER[Iterate]
+    ITER --> MERGE[Merge later\nwhen stable and proven]
+
+    U([User]) --> H[hybrid / hyolo]
+    H --> R[Deterministic router]
+    R --> B[Composer or Grok]
+    B --> V[Validation]
+    V --> T[Terra review if warranted]
+    T --> S[Sol for architecture only]
+
+    P1[Primary: hybrid]
+    P2[Primary: hyolo]
+    P3[Escape hatch: groky]
+    P4[Escape hatch: cyolo]
+    P5[Raw: cdx]
+    C1[Compatibility: cagent]
+    C2[Compatibility: cursory]
+    C3[Compatibility: codexy]
+
+    classDef primary fill:#052e16,stroke:#34d399,color:#ecfdf5,stroke-width:2px;
+    classDef compat fill:#3b0764,stroke:#c084fc,color:#faf5ff;
+    classDef codex fill:#172554,stroke:#60a5fa,color:#eff6ff;
+    classDef neutral fill:#111827,stroke:#9ca3af,color:#f9fafb;
+    class BR,TEST,ITER,MERGE,H,B,P1,P2,P3,P4,P5 primary;
+    class C1,C2,C3,S compat;
+    class T codex;
+    class MAIN,R,V neutral;
