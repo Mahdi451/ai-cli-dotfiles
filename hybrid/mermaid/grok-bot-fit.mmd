@@ -1,0 +1,27 @@
+flowchart TD
+    GB[Grok Bot\nProject steward] --> R[Research libraries]
+    GB --> D[Watch dependencies]
+    GB --> I[Triage GitHub issues]
+    GB --> B[Prepare implementation briefs]
+    R --> T[TASK / BRIEF]
+    D --> T
+    I --> T
+    B --> T
+    T --> C[Cursor CLI\nComposer 2.5 + Grok 4.6 High]
+    T --> X[Codex CLI\nTerra High + Sol High]
+    C --> V[Tests / Review / Done]
+    X --> V
+
+    GOOD[Good uses:\nbacklog grooming\nrelease monitoring\nresearch/comparisons\nweekly routines\nissue summarization]
+    BAD[Avoid:\nrandom repo edits\nduplicate review loops\noverlapping hot-path coding]
+
+    classDef bot fill:#3b0764,stroke:#c084fc,color:#faf5ff,stroke-width:2px;
+    classDef cursor fill:#052e16,stroke:#34d399,color:#ecfdf5,stroke-width:2px;
+    classDef codex fill:#172554,stroke:#60a5fa,color:#eff6ff,stroke-width:2px;
+    classDef good fill:#052e16,stroke:#4ade80,color:#f0fdf4;
+    classDef bad fill:#450a0a,stroke:#f87171,color:#fef2f2;
+    class GB,R,D,I,B,T bot;
+    class C cursor;
+    class X codex;
+    class GOOD good;
+    class BAD bad;
