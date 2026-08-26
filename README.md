@@ -1,397 +1,472 @@
-# AI CLI dotfiles
+# Hybrid Cursor + Codex v3
 
-Portable Linux/WSL configuration for opinionated Cursor and Codex CLI workflows: guarded launchers, model hierarchies, reusable agent roles, shell aliases, validation rules, and safe install/backup tooling.
+Experimental cross-CLI workflow for using **Cursor Pro+** and **ChatGPT Plus / Codex** as one coordinated coding system instead of maintaining duplicate model hierarchies.
 
-> **Core idea:** keep routine work with the cheapest capable owner, use deterministic validation early, and spend expensive reasoning only when it materially improves the probability of success.
+> **Core rule:** Cursor builds. Codex judges. Grok handles hard builds. Sol handles hard decisions.
 
-## At a glance
+This README describes the `hybrid-cursor-codex-v3` branch only. It intentionally leaves out older standalone Cursor and Codex hierarchies that are not part of the Hybrid v3 design.
 
-| Workflow | Primary command | Normal/safe command | Default owner | Senior reasoning | Use case |
-| --- | --- | --- | --- | --- | --- |
-| **GPT Hierarchy v2** | `cyolo` | `codex-st` | Terra Medium | Sol High / Sol Max | Home Codex workflow |
-| **Groky** | `groky` | `groky-safe` | Composer 2.5 | Grok 4.6 High / xHigh | Token-conscious Cursor workflow |
-| **Original Cursor** | `cursory` | `cagent` | Sol High | Sol Max | Legacy Sol/Terra/Luna Cursor workflow |
+## Status
 
-### Launcher map
+Hybrid v3 is currently an **experimental branch**.
 
-```mermaid
-flowchart LR
-    U([You])
+Implemented in this branch today:
 
-    U -->|Home GPT| CYOLO[cyolo]
-    U -->|Home GPT, normal approvals| CST[codex-st]
-    U -->|Work Cursor, autonomous| GROKY[groky]
-    U -->|Work Cursor, normal approvals| GSAFE[groky-safe]
-    U -->|Original Cursor, autonomous| CURSORY[cursory]
-    U -->|Original Cursor, normal approvals| CAGENT[cagent]
+- the v3 hierarchy and routing contract;
+- model ownership rules;
+- parallel Git worktree design;
+- cross-CLI handoff rules;
+- editable Mermaid diagrams;
+- GitHub-renderable SVG visuals.
 
-    CYOLO --> CODEX[GPT Hierarchy v2]
-    CST --> CODEX
-    GROKY --> CG[Composer + Grok]
-    GSAFE --> CG
-    CURSORY --> STL[Sol / Terra / Luna]
-    CAGENT --> STL
+Planned next:
 
-    classDef user fill:#111827,stroke:#64748b,color:#f8fafc,stroke-width:2px;
-    classDef gpt fill:#172554,stroke:#60a5fa,color:#eff6ff,stroke-width:2px;
-    classDef grok fill:#052e16,stroke:#4ade80,color:#f0fdf4,stroke-width:2px;
-    classDef cursor fill:#3f1d0b,stroke:#fb923c,color:#fff7ed,stroke-width:2px;
-    class U user;
-    class CYOLO,CST,CODEX gpt;
-    class GROKY,GSAFE,CG grok;
-    class CURSORY,CAGENT,STL cursor;
-```
+- writable `grok-builder` role;
+- deterministic hybrid router;
+- `hybrid` safe launcher;
+- `hyolo` trusted/autonomous launcher;
+- worktree orchestration helpers;
+- automated handoffs between Cursor CLI and Codex CLI;
+- validation against representative routine, difficult, architectural, and stalled tasks.
 
-## Which launcher should I use?
+The target commands described below are therefore the **intended v3 interface**, not yet the production default.
 
-```mermaid
-flowchart TD
-    START([Start a coding task]) --> WHERE{Which environment?}
+## Architecture at a glance
 
-    WHERE -->|Home / Codex| GPTRISK{Want full approvals?}
-    WHERE -->|Work / Cursor| CURSORSTYLE{Which hierarchy?}
+![Hybrid Cursor + Codex v3 overview](hybrid/assets/hybrid-v3-overview.svg)
 
-    GPTRISK -->|Yes| CYOLO[cyolo]
-    GPTRISK -->|No| CST[codex-st]
+The hierarchy assigns each subscription a distinct job instead of paying two systems to perform the same role.
 
-    CURSORSTYLE -->|Composer + Grok| GROKAPP{Approval mode?}
-    CURSORSTYLE -->|Original Sol / Terra / Luna| OLDAPP{Approval mode?}
-
-    GROKAPP -->|Normal| GSAFE[groky-safe]
-    GROKAPP -->|Autonomous| GROKY[groky]
-
-    OLDAPP -->|Normal| CAGENT[cagent]
-    OLDAPP -->|Autonomous| CURSORY[cursory]
-
-    classDef decision fill:#0f172a,stroke:#94a3b8,color:#f8fafc;
-    classDef safe fill:#0c4a6e,stroke:#38bdf8,color:#f0f9ff;
-    classDef auto fill:#3f1d0b,stroke:#fb923c,color:#fff7ed;
-    class WHERE,GPTRISK,CURSORSTYLE,GROKAPP,OLDAPP decision;
-    class CST,GSAFE,CAGENT safe;
-    class CYOLO,GROKY,CURSORY auto;
-```
-
----
-
-# GPT Hierarchy v2 — home Codex workflow
-
-The optimized home hierarchy is Terra-led. Routine tasks stay in one Terra context; Luna is opportunistic; Sol High is conditional; Sol Max is exceptional.
-
-### Architecture
-
-```mermaid
-flowchart TD
-    T[Terra Medium<br/>Primary Task Owner]
-    L[Luna Medium<br/>Bounded Cheap Support]
-    V[Tests / Typecheck / Lint / Build<br/>Deterministic Validation]
-    SA[Sol High<br/>Architect]
-    SR[Sol High<br/>Independent Reviewer]
-    SM[Sol Max<br/>Exceptional Escalation]
-    FIX[Terra<br/>Fix Findings]
-    DONE([Done])
-
-    T -->|Routine work| V
-    V -->|Routine + passing| DONE
-
-    T -->|Large mechanical / bounded task| L
-    L -->|Handoff| T
-
-    T -->|Architecture / security / persistence / concurrency| SA
-    SA -->|Acceptance criteria + approach| T
-
-    V -->|Consequential change| SR
-    SR -->|No material findings| DONE
-    SR -->|Actionable findings| FIX
-    FIX --> V
-
-    T -->|Credible attempts still blocked| SR
-    SR -->|Still materially uncertain| SM
-    SM -->|Diagnosis / recommendation| T
-
-    classDef owner fill:#172554,stroke:#60a5fa,color:#eff6ff,stroke-width:2px;
-    classDef cheap fill:#164e63,stroke:#22d3ee,color:#ecfeff;
-    classDef senior fill:#3b0764,stroke:#c084fc,color:#faf5ff,stroke-width:2px;
-    classDef verify fill:#1f2937,stroke:#94a3b8,color:#f8fafc;
-    classDef done fill:#052e16,stroke:#4ade80,color:#f0fdf4,stroke-width:2px;
-    class T,FIX owner;
-    class L cheap;
-    class SA,SR,SM senior;
-    class V verify;
-    class DONE done;
-```
-
-### Routing contract
-
-```text
-Routine:
-  Terra -> validate -> diff inspection -> done
-
-Bounded cheap support:
-  Terra -> Luna -> Terra verifies/integrates -> validate -> done
-
-Important:
-  Terra -> validate -> Sol High reviewer -> Terra fixes -> validate -> done
-
-Architectural:
-  Sol High architect -> Terra implements -> validate -> Sol High reviewer -> done
-
-Exceptional:
-  Terra attempts -> Sol High diagnosis -> Sol Max only if material uncertainty remains
-```
-
-| Role | Model + effort | Responsibility |
-| --- | --- | --- |
-| Terra parent | `gpt-5.6-terra` + medium | Default owner: inspect, implement, test, debug, integrate, self-review |
-| Luna worker | `gpt-5.6-luna` + medium | Optional isolated low-risk/mechanical support |
-| Terra reviewer | `gpt-5.6-terra` + high | Optional routine second pass, mainly for Luna work |
-| Sol architect | `gpt-5.6-sol` + high | Architecture and acceptance criteria for consequential changes |
-| Sol reviewer | `gpt-5.6-sol` + high | Independent integrated-diff review |
-| Sol Max advisor | `gpt-5.6-sol` + max | Exceptional escalation only |
-
-### Commands
-
-```bash
-# Normal Codex approvals / sandbox
-codex-st "Implement the requested change and validate it."
-
-# Canonical full-approval home GPT alias
-cyolo "Implement the reviewed change and validate it."
-```
-
-`cyolo` expands to:
-
-```bash
-codex-st --dangerously-bypass-approvals-and-sandbox
-```
-
-`codexy` remains only as a backward-compatible alias for the same command.
-
-See [`codex/HIERARCHY.md`](codex/HIERARCHY.md) and [`codex/prompts/terra-led-workflow.md`](codex/prompts/terra-led-workflow.md).
-
----
-
-# Groky — Composer 2.5 + Grok 4.6 Cursor workflow
-
-Groky is the token-conscious work hierarchy: Composer owns normal coding, tests, debugging, and integration; Grok enters only when deeper reasoning or independent review is worth the extra context and cost.
-
-### Architecture
-
-```mermaid
-flowchart TD
-    C[Composer 2.5<br/>Primary Task Owner<br/>fast=false]
-    V[Tests / Typecheck / Lint / Build<br/>Deterministic Validation]
-    GM[Grok 4.6 Medium<br/>Targeted Advisor<br/>fast=false]
-    GH1[Grok 4.6 High<br/>Architect<br/>fast=false]
-    GH2[Grok 4.6 High<br/>Reviewer<br/>fast=false]
-    GX[Grok 4.6 xHigh<br/>Exceptional Escalation<br/>fast=false]
-    FIX[Composer<br/>Fix Findings]
-    DONE([Done])
-
-    C -->|Routine| V
-    V -->|Routine + passing| DONE
-
-    C -->|Stubborn debugging| GM
-    GM -->|Focused recommendation| C
-
-    C -->|Architecture / high-risk design| GH1
-    GH1 -->|Acceptance criteria + approach| C
-
-    V -->|Important / high-risk| GH2
-    GH2 -->|No material findings| DONE
-    GH2 -->|Actionable findings| FIX
-    FIX --> V
-
-    GH2 -->|Still materially uncertain| GX
-    GX -->|Diagnosis / recommendation| C
-
-    classDef owner fill:#052e16,stroke:#4ade80,color:#f0fdf4,stroke-width:2px;
-    classDef grok fill:#3b0764,stroke:#c084fc,color:#faf5ff,stroke-width:2px;
-    classDef verify fill:#1f2937,stroke:#94a3b8,color:#f8fafc;
-    classDef done fill:#172554,stroke:#60a5fa,color:#eff6ff,stroke-width:2px;
-    class C,FIX owner;
-    class GM,GH1,GH2,GX grok;
-    class V verify;
-    class DONE done;
-```
-
-### Routing contract
-
-```text
-Routine:
-  Composer -> validate -> diff inspection -> done
-
-Stalled:
-  Composer -> Grok Medium advisor -> Composer -> validate
-
-Important:
-  Composer -> validate -> Grok High reviewer -> Composer fixes -> validate -> done
-
-Architectural:
-  Grok High architect -> Composer -> validate -> Grok High reviewer -> done
-
-Exceptional:
-  Grok xHigh only after credible Composer + Grok High attempts
-```
-
-### Fast mode policy: always off
-
-Every managed Cursor model is explicitly non-Fast.
-
-| Role | Model |
-| --- | --- |
-| Composer parent | `composer-2.5` + `fast=false` |
-| Composer delegate | `composer-2.5[fast=false]` |
-| Grok advisor | `grok-4.6[effort=medium,fast=false]` |
-| Grok architect | `grok-4.6[effort=high,fast=false]` |
-| Grok reviewer | `grok-4.6[effort=high,fast=false]` |
-| Grok escalation | `grok-4.6[effort=xhigh,fast=false]` |
-
-`cursor-st --groky` forces the selected Composer parent to non-Fast before startup. Custom agents carry independent `fast=false` pins, and the doctor rejects managed custom agents missing the explicit pin. Built-in/automatic subagents are not part of the managed Groky path when their speed variant cannot be verified.
-
-### Commands
-
-```bash
-# Normal Cursor approval behavior
-groky-safe "Implement the requested change and validate it."
-
-# Full-autonomy work workflow
-groky "Implement the reviewed change and validate it."
-```
-
-See [`cursor/GROKY.md`](cursor/GROKY.md) and [`cursor/prompts/groky-workflow.md`](cursor/prompts/groky-workflow.md).
-
----
-
-# Original Cursor — Sol / Terra / Luna
-
-The original managed Cursor hierarchy remains available for compatibility.
-
-```mermaid
-flowchart LR
-    S[Sol High<br/>Parent<br/>fast=false] --> T[Terra Medium<br/>Implementation<br/>fast=false]
-    T --> L[Luna Medium<br/>Bounded Support<br/>fast=false]
-    L --> T
-    T --> R[Terra High<br/>Routine Review<br/>fast=false]
-    R --> S
-    S -. exceptional .-> SM[Sol Max<br/>fast=false]
-
-    classDef lead fill:#172554,stroke:#60a5fa,color:#eff6ff,stroke-width:2px;
-    classDef worker fill:#164e63,stroke:#22d3ee,color:#ecfeff;
-    classDef senior fill:#3b0764,stroke:#c084fc,color:#faf5ff;
-    class S lead;
-    class T,L,R worker;
-    class SM senior;
-```
-
-```bash
-cagent     # normal approvals
-cursory    # cursor-st --yolo
-```
-
-All managed models in this Cursor hierarchy are also pinned to `fast=false`.
-
----
-
-## Command matrix
-
-| Command | CLI | Hierarchy | Approval behavior | Recommended use |
+| Priority | CLI | Model | Effort | Role |
 | --- | --- | --- | --- | --- |
-| `cyolo` | Codex | GPT Hierarchy v2 | Full bypass | Home trusted/sandboxed execution |
-| `codex-st` | Codex | GPT Hierarchy v2 | Normal | Home standard use |
-| `groky` | Cursor | Composer + Grok | `--yolo` | Work trusted autonomous execution |
-| `groky-safe` | Cursor | Composer + Grok | Normal | Work standard use |
-| `cursory` | Cursor | Sol/Terra/Luna | `--yolo` | Legacy Cursor autonomous mode |
-| `cagent` | Cursor | Sol/Terra/Luna | Normal | Legacy Cursor standard mode |
-| `codexy` | Codex | GPT Hierarchy v2 | Full bypass | Compatibility alias for `cyolo` |
-| `cdx` | Codex | Raw Codex | Native | Intentionally bypass managed hierarchy |
+| P0 | Cursor CLI | **Composer 2.5** | standard, `fast=false` | Default builder |
+| P1 | Cursor CLI | **Grok 4.6** | high, `fast=false` | Hard / long-running builder |
+| P1 | Cursor CLI | **Grok 4.6** | medium, `fast=false` | Focused debugger / advisor |
+| P2 | Codex CLI | **GPT-5.6 Terra** | high | Independent reviewer |
+| P3 | Codex CLI | **GPT-5.6 Sol** | high | Architect for consequential changes |
+| P4 | Codex CLI | **GPT-5.6 Sol** | max | Exceptional escalation only |
 
-## Installation
+The normal ownership model is deliberately simple:
 
-Prerequisites: Linux or WSL, Bash, Python 3.11+, Git, `rg`, and the official Cursor and/or Codex CLI already installed and authenticated.
-
-```bash
-git clone git@github.com:YOUR-ACCOUNT/ai-cli-dotfiles.git
-cd ai-cli-dotfiles
-
-./doctor.sh --repo-only
-./tests/smoke-test.sh
-git diff --check
-
-./install.sh --dry-run
-./install.sh
-source ~/.bashrc
-./doctor.sh
+```text
+Composer builds normal work
+        ↓
+Grok takes hard implementation when warranted
+        ↓
+Deterministic validation
+        ↓
+Terra reviews important integrated diffs
+        ↓
+Sol handles architecture / critical decisions only
 ```
 
-Useful install options:
+## Why this hierarchy exists
 
-| Option | Effect |
-| --- | --- |
-| `--copy` | Install independent copies instead of symlinks |
-| `--cursor-only` | Install Cursor assets and shared aliases only |
-| `--codex-only` | Install Codex assets and shared aliases only |
-| `--replace-config` | Back up and replace the Codex base config template |
-| `--force` | Replace a protected changed/unrecognized target after backup |
-| `--full-access` | Store Cursor unrestricted approval/disabled sandbox preferences |
+The previous approach treated Cursor and Codex as separate coding worlds. That creates duplicate roles: one implementation hierarchy inside Cursor and another implementation hierarchy inside Codex.
 
-## Inspect the active workflows
+Hybrid v3 instead treats the subscriptions as complementary layers:
 
-```bash
-# Original Cursor
-cursor-st --show-flow
-cursor-st --doctor
+```text
+Cursor subscription
+    ├── Composer 2.5 → routine/high-volume implementation
+    └── Grok 4.6    → difficult/long-running implementation
 
-# Groky
-cursor-st --groky --show-flow
-cursor-st --groky --doctor
-
-# GPT Hierarchy v2
-codex-st --show-flow
-codex-st --doctor
-
-# Alias helper
-cdoctor
+Codex subscription
+    ├── Terra High  → independent review
+    └── Sol High    → architecture and critical reasoning
 ```
 
-## Installed mappings
+This reduces duplicate context, duplicate model calls, and unnecessary handoffs while preserving an independent review layer.
 
-| Repository source | Destination |
-| --- | --- |
-| `cursor/agents/*.md` | `~/.cursor/agents/` |
-| `cursor/rules/*.mdc` | `~/.cursor/rules/` |
-| `cursor/hooks.json` | merged into `~/.cursor/hooks.json` |
-| `cursor/cli-config.json` | selected portable fields merged into `~/.cursor/cli-config.json` |
-| `bin/cursor-st` | `~/.local/bin/cursor-st` |
-| `codex/AGENTS.md` | `~/.codex/AGENTS.md` |
-| `codex/rules/default.rules` | `~/.codex/rules/default.rules` |
-| `codex/config/sol-terra-luna.config.toml` | `~/.codex/sol-terra-luna.config.toml` |
-| `codex/agents/*.toml` | `~/.codex/agents/` |
-| `codex/config/config.toml` | `~/.codex/config.toml` only if missing or explicitly replaced |
-| `bin/codex-st` | `~/.local/bin/codex-st` |
-| `shell/ai-cli-aliases.sh` | `${XDG_CONFIG_HOME:-$HOME/.config}/ai-cli-dotfiles/ai-cli-aliases.sh` |
+## Routing tree
 
-`CURSOR_HOME`, `CODEX_HOME`, `XDG_STATE_HOME`, and `XDG_CONFIG_HOME` are honored where applicable.
+![Hybrid v3 routing tree](hybrid/assets/routing-tree.svg)
 
-## Maintenance and recovery
+The router should be deterministic. Do not add another LLM whose main purpose is deciding which LLM to call.
 
-```bash
-./doctor.sh --repo-only
-./tests/smoke-test.sh
-git diff --check
+### Routine and bounded work
 
-./backup-current.sh
-./backup-current.sh --include-codex
+Use **Composer 2.5** by default.
 
-./uninstall.sh --dry-run
-./uninstall.sh --restore
+Typical work:
+
+- normal features;
+- straightforward bug fixes;
+- unit and integration tests;
+- scripts and configuration;
+- small and medium refactors;
+- documentation;
+- routine debugging;
+- mechanical repository changes.
+
+Flow:
+
+```text
+Composer 2.5
+  → inspect relevant code
+  → implement
+  → tests / typecheck / lint / build as appropriate
+  → inspect final diff
+  → done
 ```
 
-The backup workflow preserves Cursor's selected-model `fast=false` parameter.
+Do not invoke a senior model merely to satisfy process.
 
-## Security
+### Hard or long-running implementation
 
-Never commit credentials, authentication JSON, private keys, `.env` files, sessions, logs, model history, local databases, machine trust entries, or other secrets.
+Use **Grok 4.6 High** when implementation itself is the difficult part.
 
-The repository scanner is a guardrail, not permission to commit sensitive material. High-autonomy aliases (`cyolo`, `groky`, `cursory`) should only be used in trusted or appropriately sandboxed environments.
+Promote work to Grok when one or more are true:
 
-Repository validation proves the portable configuration is internally consistent; it does not prove account access, model availability, or that unrestricted execution is safe in a particular project.
+- the change spans many modules;
+- repository understanding is difficult;
+- the implementation is ambiguous or highly agentic;
+- the task is expected to run for a long time;
+- difficult debugging survives a credible Composer attempt;
+- transferring implementation ownership is cheaper than repeated advisor handoffs.
+
+In Hybrid v3, Grok High is a **writer**, not merely a read-only advisor.
+
+```text
+Composer identifies a hard task or makes a credible attempt
+        ↓
+Grok 4.6 High takes implementation ownership
+        ↓
+Deterministic validation
+        ↓
+Review only if the resulting change warrants it
+```
+
+### Important changes
+
+Important integrated changes receive an independent **Terra High** review after deterministic validation.
+
+```text
+Composer or Grok builds
+        ↓
+tests / lint / build / runtime validation
+        ↓
+Terra High read-only review
+        ↓
+issue found?
+   ├── no  → done
+   └── yes → original builder fixes
+                 ↓
+              validate
+```
+
+Terra should review the actual integrated diff rather than independently rediscovering the entire repository.
+
+Review for:
+
+- correctness and regressions;
+- missing edge cases;
+- unsafe assumptions;
+- state consistency problems;
+- concurrency bugs;
+- security problems;
+- inadequate validation;
+- needless complexity.
+
+Routine low-risk work with strong deterministic validation does not require a model review.
+
+## Architecture and high-risk path
+
+Use **Sol High before implementation** when a bad design decision would be expensive to unwind.
+
+Typical triggers:
+
+- architecture changes;
+- authentication or security boundaries;
+- persistence, schemas, or migrations;
+- concurrency and synchronization;
+- state ownership;
+- public APIs or interfaces;
+- backwards compatibility;
+- infrastructure changes;
+- major cross-cutting refactors.
+
+Flow:
+
+```text
+Sol High
+  → architecture
+  → invariants
+  → acceptance criteria
+  → failure modes
+  → validation strategy
+        ↓
+Composer or Grok implements
+        ↓
+Deterministic validation
+        ↓
+Terra High integrated review
+        ↓
+done
+```
+
+Use **Sol Max** only when material uncertainty remains after credible implementation attempts plus Terra/Sol High reasoning. Importance alone is not a reason to invoke Max.
+
+## Parallel mode with Git worktrees
+
+![Parallel mode with Git worktrees](hybrid/assets/parallel-worktrees.svg)
+
+Git is the coordination layer between writing agents.
+
+For sufficiently large tasks:
+
+```text
+                     Sol High plan when needed
+                              │
+                 split into bounded ownership
+                    ┌─────────┴─────────┐
+                    │                   │
+           Composer worktree      Grok worktree
+                    │                   │
+                 commit              commit
+                    └─────────┬─────────┘
+                              │
+                     integration worktree
+                              │
+                     tests / lint / build
+                              │
+                       Terra High review
+                              │
+                             done
+```
+
+### Parallel execution rules
+
+1. Never let two writing agents edit the same checkout concurrently.
+2. Prefer non-overlapping file ownership.
+3. Each worker uses its own branch and worktree.
+4. Each worker returns a commit plus a compact handoff.
+5. Merge or cherry-pick into an integration worktree.
+6. Run deterministic checks on the combined result.
+7. Review the integrated diff, not isolated partial diffs, when system behavior depends on both changes.
+
+Do **not** do this:
+
+```text
+Composer ─┐
+          ├── both editing ./src/foo.ts in one checkout
+Grok ─────┘
+```
+
+Do this instead:
+
+```text
+../project-composer
+../project-grok
+../project-integrate
+```
+
+## Compact cross-CLI handoff
+
+Do not copy entire conversational histories between Cursor and Codex.
+
+Every escalation should contain only what the receiving model needs:
+
+- objective;
+- acceptance criteria;
+- relevant architecture;
+- changed or relevant files;
+- important implementation decisions;
+- validation already run and results;
+- observed failure or remaining uncertainty;
+- current diff or commit range when reviewing.
+
+The receiving model expands repository exploration only when a concrete concern requires it.
+
+## Where Grok Bot fits
+
+![Where Grok Bot fits](hybrid/assets/grok-bot-fit.svg)
+
+Grok Bot sits **above** the local CLI hierarchy as a project steward. It should not become another uncontrolled writer in the coding hot path.
+
+Good uses:
+
+- library and dependency research;
+- upstream release monitoring;
+- GitHub issue triage;
+- backlog grooming;
+- implementation briefs;
+- recurring project routines;
+- research and comparisons;
+- issue summarization.
+
+Avoid using Grok Bot for:
+
+- random repository edits;
+- duplicate code-review loops;
+- overlapping hot-path implementation;
+- editing the same files as local CLI workers.
+
+The preferred flow is:
+
+```text
+Grok Bot
+  → research / monitor / triage
+  → TASK or implementation brief
+  → local Hybrid v3 CLI hierarchy
+  → deterministic validation
+  → independent review when warranted
+```
+
+## Target command surface
+
+Hybrid v3 is intended to expose two primary entry points:
+
+```bash
+hybrid "implement the requested change"
+hyolo  "implement the reviewed change"
+```
+
+### `hybrid`
+
+Target behavior:
+
+- normal approval and sandbox behavior;
+- deterministic routing;
+- Composer as default builder;
+- Grok High for difficult implementation;
+- worktree isolation when parallel writers are useful;
+- deterministic validation before model review;
+- Terra High review when warranted;
+- Sol High architecture only for consequential design work.
+
+### `hyolo`
+
+Same hierarchy and routing logic, but intended for trusted/autonomous execution environments.
+
+High-autonomy execution should only be used where the repository and execution environment are appropriately trusted or sandboxed.
+
+## Branch strategy
+
+![Branch strategy and command map](hybrid/assets/branch-strategy-command-map.svg)
+
+The rollout policy for v3 is conservative:
+
+```text
+main
+  ↓
+hybrid-cursor-codex-v3
+  ↓
+test representative workloads
+  ↓
+refine routing / prompts / orchestration
+  ↓
+merge only when the workflow is proven
+```
+
+`main` remains the stable baseline while v3 is evaluated independently.
+
+## Repository layout for v3
+
+The branch-specific design documentation lives under `hybrid/`:
+
+```text
+hybrid/
+├── HIERARCHY.md
+├── VISUALS.md
+├── assets/
+│   ├── hybrid-v3-overview.svg
+│   ├── routing-tree.svg
+│   ├── parallel-worktrees.svg
+│   ├── grok-bot-fit.svg
+│   └── branch-strategy-command-map.svg
+└── mermaid/
+    ├── hybrid-v3-overview.mmd
+    ├── routing-tree.mmd
+    ├── parallel-worktrees.mmd
+    ├── grok-bot-fit.mmd
+    └── branch-strategy-command-map.mmd
+```
+
+See:
+
+- [`hybrid/HIERARCHY.md`](hybrid/HIERARCHY.md) for the detailed routing contract;
+- [`hybrid/VISUALS.md`](hybrid/VISUALS.md) for all diagrams;
+- [`hybrid/mermaid/`](hybrid/mermaid/) for editable diagram sources.
+
+As implementation phases land, the branch will add the corresponding launcher, agent, routing, and worktree helpers without reintroducing duplicate standalone hierarchies into this README.
+
+## Development phases
+
+### Phase 1 — hierarchy and documentation
+
+Current branch state.
+
+- define ownership;
+- define routing;
+- define cross-CLI handoffs;
+- define worktree model;
+- add visuals and editable sources.
+
+### Phase 2 — Grok builder
+
+- add writable pinned `grok-builder`;
+- retain Composer as the default owner;
+- verify `fast=false` invariants;
+- add role-level validation.
+
+### Phase 3 — hybrid launcher
+
+- implement `hybrid` and `hyolo`;
+- add deterministic routing;
+- add worktree creation and cleanup;
+- construct compact cross-CLI handoffs;
+- integrate validation hooks.
+
+### Phase 4 — validation
+
+Compare v3 against representative workloads:
+
+- routine implementation;
+- difficult implementation;
+- large parallel feature;
+- architectural change;
+- security-sensitive change;
+- difficult debugging;
+- stalled task recovery.
+
+Measure:
+
+- completion rate;
+- token/context duplication;
+- number of model handoffs;
+- deterministic validation quality;
+- review findings;
+- recovery from failed attempts;
+- total interaction overhead.
+
+### Phase 5 — promotion
+
+Promote Hybrid v3 only if it demonstrably reduces duplicate model calls and handoff overhead while preserving or improving correctness, validation quality, and difficult-task recovery.
+
+## Design principles
+
+1. **One owner by default.** Routine tasks stay in one implementation context.
+2. **Cursor carries implementation volume.** Composer and Grok do most coding work.
+3. **Codex provides independent judgment.** Terra and Sol are used where a second reasoning system materially improves confidence.
+4. **Deterministic checks come first.** Tests, lint, typecheck, build, runtime checks, and focused reproductions are preferable to ceremonial model reviews.
+5. **Escalation is conditional.** Stronger models are used because the task warrants them, not because they are available.
+6. **Git coordinates parallel writers.** Separate branches and worktrees prevent agents from fighting over one filesystem.
+7. **Handoffs stay compact.** Transfer the task state, not the conversation history.
+8. **Main stays stable.** Validate the hybrid workflow on this branch before replacing the existing baseline.
+
+## Short version
+
+```text
+Composer builds normally
+        ↓
+Grok builds the hard stuff
+        ↓
+Terra reviews important diffs
+        ↓
+Sol makes consequential decisions
+        ↓
+Sol Max is the final escalation only
+```
+
+That is Hybrid Cursor + Codex v3.
