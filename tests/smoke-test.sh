@@ -92,6 +92,8 @@ for forbidden in ('displayModelId','displayName','aliases','maxMode','272k','mod
 PY
 for rule in core execution-safety one-line-commands token-efficiency git-filesystem-safety minimal-diff model-routing verification-before-done; do [[ -f "$ROOT/cursor/rules/$rule.mdc" ]]; done
 [[ -f "$ROOT/cursor/agents/composer-owner.md" && -f "$ROOT/shell/ai-cli-aliases.sh" ]]
+grep -Fq "exec \"\$(find_agent_bin)\" --model 'composer-2.5[fast=false]'" "$ROOT/bin/cursor-st"
+grep -Fq "exec \"\$(find_agent_bin)\" --model 'gpt-5.6-sol-high[fast=false]'" "$ROOT/bin/cursor-st"
 run "$third" "$ROOT/uninstall.sh" --restore --force
 [[ ! -e "$third/.local/bin/cursor-st" ]]
 fourth="$(make_home)"

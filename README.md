@@ -246,7 +246,7 @@ Every managed Cursor model is explicitly non-Fast.
 | Grok reviewer | `grok-4.6[effort=high,fast=false]` |
 | Grok escalation | `grok-4.6[effort=xhigh,fast=false]` |
 
-`cursor-st --groky` forces the selected Composer parent to non-Fast before startup. Custom agents carry independent `fast=false` pins, and the doctor rejects managed custom agents missing the explicit pin. Built-in/automatic subagents are not part of the managed Groky path when their speed variant cannot be verified.
+`cursor-st --groky` launches with `--model composer-2.5[fast=false]` so the CLI cannot fall back to Auto / Auto Balance. It also rewrites the selected Composer parent to non-Fast in `cli-config.json` before startup. Custom agents carry independent `fast=false` pins, and the doctor rejects managed custom agents missing the explicit pin. Built-in/automatic subagents are not part of the managed Groky path when their speed variant cannot be verified.
 
 ### Commands
 

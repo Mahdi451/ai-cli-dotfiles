@@ -288,8 +288,9 @@ Exceptional:
   Composer/Grok High remain materially uncertain -> Grok xHigh advice -> Composer
 
 Fast policy:
-  Every managed model is pinned to fast=false. The launcher rewrites only the
-  selected parent/explore model fields to non-Fast values immediately before launch.
+  Every managed model is pinned to fast=false. The launcher passes --model
+  composer-2.5[fast=false] so the CLI cannot fall back to Auto / Auto Balance.
+  It also rewrites selected parent/explore fields to non-Fast before launch.
 EOF
   else
     cat <<EOF
@@ -307,8 +308,9 @@ Flow:
   -> Sol High complete-diff review and final signoff
 
 Fast policy:
-  Every managed model is pinned to fast=false. The launcher rewrites only the
-  selected parent/explore model fields to non-Fast values immediately before launch.
+  Every managed model is pinned to fast=false. The launcher passes --model
+  gpt-5.6-sol-high[fast=false] so the CLI cannot fall back to Auto / Auto Balance.
+  It also rewrites selected parent/explore fields to non-Fast before launch.
 EOF
   fi
 }
@@ -362,4 +364,7 @@ fi
 assert_custom_agents_nonfast
 select_parent_nonfast
 cd -- "$ROOT"
-exec "$(find_agent_bin)" "$@"
+if [[ "$MODE" == groky ]]; then
+  exec "$(find_agent_bin)" --model 'composer-2.5[fast=false]' "$@"
+fi
+exec "$(find_agent_bin)" --model 'gpt-5.6-sol-high[fast=false]' "$@"
