@@ -1,4 +1,4 @@
-# Groky — Composer 2.5 + Grok 4.6 Execution Prompt
+# Groky — Grok 4.6 High + Composer 2.5 Execution Prompt
 
 Use the active Groky Cursor hierarchy for this task.
 
@@ -8,31 +8,26 @@ Use the active Groky Cursor hierarchy for this task.
 
 ## Context
 
-[Provide only the information needed to start. Let Composer inspect the repository for the rest.]
+[Provide only the information needed to start. Let the Grok High parent inspect the repository for the rest.]
 
 ## Model policy
 
 Fast mode is always off. Do not enable Fast for any managed model or subagent.
 
-- Composer parent: `fast=false`, launcher-enforced.
-- Composer delegated role: `composer-2.5[fast=false]`.
-- Grok Medium advisor: `grok-4.6[effort=medium,fast=false]`.
-- Grok High architect/reviewer: `grok-4.6[effort=high,fast=false]`.
+- Grok High parent: `grok-4.6[effort=high,fast=false]`, launcher-enforced.
+- Composer implementer: `composer-2.5[fast=false]`.
+- Grok High reviewer: `grok-4.6[effort=high,fast=false]`, fresh-context only.
 - Grok xHigh escalation: `grok-4.6[effort=xhigh,fast=false]`.
 
-Prefer direct parent tools or the pinned custom agents over unspecified/built-in subagents whose speed variant cannot be verified.
+Prefer direct parent tools or the pinned custom agents over unspecified/built-in subagents whose speed variant cannot be verified. Do not invoke `grok-advisor` or `grok-architect`; those roles are folded into the parent.
 
 ## Execution policy
 
-Composer 2.5 owns the task. For routine work, inspect relevant code, define lightweight acceptance criteria, implement, run deterministic validation, inspect the final diff, fix issues, and finish without calling Grok merely to satisfy process.
+Grok 4.6 High owns the task. Inspect relevant code, define lightweight acceptance criteria, and either implement a small local change or delegate bulk/mechanical/multi-file work to `composer-owner`. Run deterministic validation, inspect the final diff, fix issues, and finish without calling `grok-reviewer` merely to satisfy process.
 
-Use `grok-advisor` only after a credible Composer attempt when targeted reasoning/debugging is likely to save time.
+Use `grok-reviewer` after deterministic validation only for important or high-risk changes where a fresh-context High pass materially improves confidence. Give it a compact handoff containing objective, acceptance criteria, relevant architecture, changed files, important decisions, checks already run, known uncertainty, and the git diff.
 
-Use `grok-architect` before implementation only when the task materially changes architecture, security boundaries, persistence/migrations, concurrency/synchronization, public APIs/interfaces, or similarly consequential cross-cutting design.
-
-Use `grok-reviewer` after deterministic validation only for important or high-risk changes where independent review materially improves confidence. Give it a compact handoff containing objective, acceptance criteria, relevant architecture, changed files, important decisions, checks already run, known uncertainty, and the git diff.
-
-Use `grok-escalation` only if substantial uncertainty remains after credible Composer and Grok High attempts. Grok advises; Composer implements.
+Use `grok-escalation` only if substantial uncertainty remains after credible Grok High parent attempts. Grok xHigh advises; the parent routes; Composer implements bulk work.
 
 Prefer deterministic tests/checks over additional model-review passes. Use relevant unit tests, integration tests, type checks, lint, builds, runtime/browser checks, or focused reproductions. Do not run irrelevant expensive suites merely to satisfy a checklist.
 
@@ -45,10 +40,10 @@ Do not claim completion until:
 - requested behavior exists;
 - relevant deterministic validation has run;
 - the final diff has been inspected;
-- valid Grok findings are handled when Grok review was warranted;
+- valid reviewer or escalation findings are handled when those agents were warranted;
 - remaining risks or limitations are documented.
 
-For routine work, Composer may complete without Grok review.
+For routine work, the Grok High parent may complete without `grok-reviewer`.
 
 ## Final response
 

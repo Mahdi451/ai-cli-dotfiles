@@ -12,6 +12,12 @@ mkdir -p "$first/.cursor"
 printf '%s\n' '{"authInfo":{"token":"runtime-only"},"modelSelectionHistory":["old"],"unknownRuntime":true}' > "$first/.cursor/cli-config.json"
 run "$first" "$ROOT/install.sh" --copy
 [[ -f "$first/.cursor/cli-config.json" && -f "$first/.codex/config.toml" ]]
+[[ -f "$first/.cursor/agents/composer-owner.md" && -f "$first/.cursor/agents/grok-reviewer.md" && -f "$first/.cursor/agents/grok-escalation.md" ]]
+[[ ! -e "$first/.cursor/agents/grok-advisor.md" && ! -e "$first/.cursor/agents/grok-architect.md" ]]
+printf '%s\n' leftover-retired-agent > "$first/.cursor/agents/grok-advisor.md"
+printf '%s\n' leftover-retired-agent > "$first/.cursor/agents/grok-architect.md"
+run "$first" "$ROOT/install.sh" --copy
+[[ ! -e "$first/.cursor/agents/grok-advisor.md" && ! -e "$first/.cursor/agents/grok-architect.md" ]]
 python3 - "$first/.cursor/hooks.json" "$first" <<'PY'
 import json,sys
 x=json.load(open(sys.argv[1])); command=x['hooks']['beforeShellExecution'][0]['command']
@@ -65,6 +71,38 @@ grep -Fqx 'model = "gpt-5.6-sol"' "$second/.codex/config.toml"
 third="$(make_home)"
 run "$third" "$ROOT/install.sh" --symlink --full-access
 [[ -L "$third/.local/bin/cursor-st" && -L "$third/.codex/agents/sol-planner.toml" ]]
+run "$third" "$third/.local/bin/cursor-st" --groky --show-flow > "$TEST_ROOT/groky-flow.txt"
+rg -Fq "Grok High parent:" "$TEST_ROOT/groky-flow.txt"
+rg -Fq "grok-4.6[effort=high,fast=false]" "$TEST_ROOT/groky-flow.txt"
+! rg -Fq "Grok advisor:" "$TEST_ROOT/groky-flow.txt"
+run "$third" "$third/.local/bin/cursor-st" --groky --doctor >/dev/null
+groky_repo="$(mktemp -d "$TEST_ROOT/groky-repo.XXXXXX")"
+git -C "$groky_repo" init -q
+mkdir -p "$groky_repo/.cursor/rules"
+cat > "$groky_repo/.cursor/rules/global-groky-routing.mdc" <<'EOF'
+---
+alwaysApply: true
+---
+
+# Composer 2.5 + Grok 4.6 Routing Template
+
+This rule is a dormant template in the user rules directory. `cursor-st --groky` renders a project-local copy with `alwaysApply: true`. Do not apply this template in ordinary `cursor-st` sessions.
+EOF
+run "$third" env --chdir="$groky_repo" "$third/.local/bin/cursor-st" --groky --setup-only >/dev/null
+rg -Fq "Grok 4.6 High is the parent" "$groky_repo/.cursor/rules/global-groky-routing.mdc"
+printf '%s\n' unrelated-project-rule > "$groky_repo/.cursor/rules/global-groky-routing.mdc"
+if run "$third" env --chdir="$groky_repo" "$third/.local/bin/cursor-st" --groky --setup-only >/dev/null 2>&1; then exit 1; fi
+cat > "$groky_repo/.cursor/rules/global-groky-routing.mdc" <<'EOF'
+---
+alwaysApply: true
+---
+
+# Composer 2.5 + Grok 4.6 Routing Template
+
+This rule is a dormant template in the user rules directory. `cursor-st --groky` renders a project-local copy with `alwaysApply: true`. Do not apply this template in ordinary `cursor-st` sessions.
+EOF
+run "$third" env --chdir="$groky_repo" "$third/.local/bin/cursor-st" --setup-only >/dev/null
+[[ ! -e "$groky_repo/.cursor/rules/global-groky-routing.mdc" ]]
 python3 - "$third/.cursor/cli-config.json" <<'PY'
 import json,sys
 x=json.load(open(sys.argv[1])); assert x['approvalMode']=='unrestricted'; assert x['sandbox']['mode']=='disabled'
@@ -92,7 +130,7 @@ for forbidden in ('displayModelId','displayName','aliases','maxMode','272k','mod
 PY
 for rule in core execution-safety one-line-commands token-efficiency git-filesystem-safety minimal-diff model-routing verification-before-done; do [[ -f "$ROOT/cursor/rules/$rule.mdc" ]]; done
 [[ -f "$ROOT/cursor/agents/composer-owner.md" && -f "$ROOT/shell/ai-cli-aliases.sh" ]]
-grep -Fq "exec \"\$(find_agent_bin)\" --model 'composer-2.5[fast=false]'" "$ROOT/bin/cursor-st"
+grep -Fq "exec \"\$(find_agent_bin)\" --model 'grok-4.6[effort=high,fast=false]'" "$ROOT/bin/cursor-st"
 grep -Fq "exec \"\$(find_agent_bin)\" --model 'gpt-5.6-sol-high[fast=false]'" "$ROOT/bin/cursor-st"
 run "$third" "$ROOT/uninstall.sh" --restore --force
 [[ ! -e "$third/.local/bin/cursor-st" ]]

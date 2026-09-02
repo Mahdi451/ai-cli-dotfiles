@@ -155,6 +155,8 @@ def retired_manifest_assets(args: argparse.Namespace) -> dict[str, str]:
     return {
         "cursor/agents/sol-reviewer.md": f"{cursor}/agents/sol-reviewer.md",
         "cursor/agents/luna-log-analyst.md": f"{cursor}/agents/luna-log-analyst.md",
+        "cursor/agents/grok-advisor.md": f"{cursor}/agents/grok-advisor.md",
+        "cursor/agents/grok-architect.md": f"{cursor}/agents/grok-architect.md",
         "cursor/rules/sol-plan-terra-build.mdc": f"{cursor}/rules/sol-plan-terra-build.mdc",
         "cursor/rules/delegation-budget.mdc": f"{cursor}/rules/delegation-budget.mdc",
         "codex/rules/default.rules": f"{codex}/rules/default.rules",

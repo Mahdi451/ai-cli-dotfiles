@@ -9,7 +9,7 @@ Portable Linux/WSL configuration for opinionated Cursor and Codex CLI workflows:
 | Workflow | Primary command | Normal/safe command | Default owner | Senior reasoning | Use case |
 | --- | --- | --- | --- | --- | --- |
 | **GPT Hierarchy v2** | `cyolo` | `codex-st` | Terra Medium | Sol High / Sol Max | Home Codex workflow |
-| **Groky** | `groky` | `groky-safe` | Composer 2.5 | Grok 4.6 High / xHigh | Token-conscious Cursor workflow |
+| **Groky** | `groky` | `groky-safe` | Grok 4.6 High | Composer 2.5 / Grok xHigh | Grok-led Cursor workflow |
 | **Original Cursor** | `cursory` | `cagent` | Sol High | Sol Max | Legacy Sol/Terra/Luna Cursor workflow |
 
 ### Launcher map
@@ -27,7 +27,7 @@ flowchart LR
 
     CYOLO --> CODEX[GPT Hierarchy v2]
     CST --> CODEX
-    GROKY --> CG[Composer + Grok]
+    GROKY --> CG[Grok + Composer]
     GSAFE --> CG
     CURSORY --> STL[Sol / Terra / Luna]
     CAGENT --> STL
@@ -54,7 +54,7 @@ flowchart TD
     GPTRISK -->|Yes| CYOLO[cyolo]
     GPTRISK -->|No| CST[codex-st]
 
-    CURSORSTYLE -->|Composer + Grok| GROKAPP{Approval mode?}
+    CURSORSTYLE -->|Grok High + Composer| GROKAPP{Approval mode?}
     CURSORSTYLE -->|Original Sol / Terra / Luna| OLDAPP{Approval mode?}
 
     GROKAPP -->|Normal| GSAFE[groky-safe]
@@ -170,46 +170,43 @@ See [`codex/HIERARCHY.md`](codex/HIERARCHY.md) and [`codex/prompts/terra-led-wor
 
 ---
 
-# Groky — Composer 2.5 + Grok 4.6 Cursor workflow
+# Groky — Grok 4.6 High + Composer 2.5 Cursor workflow
 
-Groky is the token-conscious work hierarchy: Composer owns normal coding, tests, debugging, and integration; Grok enters only when deeper reasoning or independent review is worth the extra context and cost.
+Groky is the Grok-led work hierarchy: Grok 4.6 High owns inspection, architecture, routing, small local edits, and signoff; Composer 2.5 implements bulk work; Grok High review and xHigh escalation remain conditional.
 
 ### Architecture
 
 ```mermaid
 flowchart TD
-    C[Composer 2.5<br/>Primary Task Owner<br/>fast=false]
+    G[Grok 4.6 High<br/>Parent<br/>fast=false]
+    C[Composer 2.5<br/>Implementer<br/>fast=false]
     V[Tests / Typecheck / Lint / Build<br/>Deterministic Validation]
-    GM[Grok 4.6 Medium<br/>Targeted Advisor<br/>fast=false]
-    GH1[Grok 4.6 High<br/>Architect<br/>fast=false]
-    GH2[Grok 4.6 High<br/>Reviewer<br/>fast=false]
+    GH[Grok 4.6 High<br/>Fresh-context Reviewer<br/>fast=false]
     GX[Grok 4.6 xHigh<br/>Exceptional Escalation<br/>fast=false]
-    FIX[Composer<br/>Fix Findings]
+    FIX[Parent or Composer<br/>Fix Findings]
     DONE([Done])
 
-    C -->|Routine| V
+    G -->|Small local change| V
+    G -->|Bulk / mechanical / multi-file| C
+    C --> V
     V -->|Routine + passing| DONE
 
-    C -->|Stubborn debugging| GM
-    GM -->|Focused recommendation| C
-
-    C -->|Architecture / high-risk design| GH1
-    GH1 -->|Acceptance criteria + approach| C
-
-    V -->|Important / high-risk| GH2
-    GH2 -->|No material findings| DONE
-    GH2 -->|Actionable findings| FIX
+    V -->|Important / high-risk| GH
+    GH -->|No material findings| DONE
+    GH -->|Actionable findings| FIX
     FIX --> V
 
-    GH2 -->|Still materially uncertain| GX
-    GX -->|Diagnosis / recommendation| C
+    G -->|Still materially uncertain| GX
+    GX -->|Diagnosis / recommendation| G
 
     classDef owner fill:#052e16,stroke:#4ade80,color:#f0fdf4,stroke-width:2px;
+    classDef hands fill:#164e63,stroke:#22d3ee,color:#ecfeff;
     classDef grok fill:#3b0764,stroke:#c084fc,color:#faf5ff,stroke-width:2px;
     classDef verify fill:#1f2937,stroke:#94a3b8,color:#f8fafc;
     classDef done fill:#172554,stroke:#60a5fa,color:#eff6ff,stroke-width:2px;
-    class C,FIX owner;
-    class GM,GH1,GH2,GX grok;
+    class G owner;
+    class C,FIX hands;
+    class GH,GX grok;
     class V verify;
     class DONE done;
 ```
@@ -218,20 +215,22 @@ flowchart TD
 
 ```text
 Routine:
-  Composer -> validate -> diff inspection -> done
-
-Stalled:
-  Composer -> Grok Medium advisor -> Composer -> validate
+  Grok High parent -> small local edit or Composer bulk implement
+    -> validate -> diff inspection -> done
 
 Important:
-  Composer -> validate -> Grok High reviewer -> Composer fixes -> validate -> done
+  Parent/Composer implement -> validate -> Grok High reviewer
+    -> parent/Composer fixes -> validate -> done
 
 Architectural:
-  Grok High architect -> Composer -> validate -> Grok High reviewer -> done
+  Grok High parent plans -> Composer implements -> validate
+    -> Grok High reviewer -> done
 
 Exceptional:
-  Grok xHigh only after credible Composer + Grok High attempts
+  Grok xHigh only after credible Grok High parent attempts
 ```
+
+Advisor and architect roles are folded into the Grok High parent.
 
 ### Fast mode policy: always off
 
@@ -239,14 +238,15 @@ Every managed Cursor model is explicitly non-Fast.
 
 | Role | Model |
 | --- | --- |
-| Composer parent | `composer-2.5` + `fast=false` |
-| Composer delegate | `composer-2.5[fast=false]` |
-| Grok advisor | `grok-4.6[effort=medium,fast=false]` |
-| Grok architect | `grok-4.6[effort=high,fast=false]` |
+| Grok High parent | `grok-4.6` + `effort=high` + `fast=false` |
+| Composer implementer | `composer-2.5[fast=false]` |
 | Grok reviewer | `grok-4.6[effort=high,fast=false]` |
 | Grok escalation | `grok-4.6[effort=xhigh,fast=false]` |
+| Explore | `composer-2.5[fast=false]` |
 
-`cursor-st --groky` launches with `--model composer-2.5[fast=false]` so the CLI cannot fall back to Auto / Auto Balance. It also rewrites the selected Composer parent to non-Fast in `cli-config.json` before startup. Custom agents carry independent `fast=false` pins, and the doctor rejects managed custom agents missing the explicit pin. Built-in/automatic subagents are not part of the managed Groky path when their speed variant cannot be verified.
+`cursor-st --groky` launches with `--model grok-4.6[effort=high,fast=false]` so the CLI cannot fall back to Auto / Auto Balance. It also rewrites the selected Grok parent to High with `fast=false` in `cli-config.json` before startup and keeps Explore on non-Fast Composer. Custom agents carry independent `fast=false` pins, and the doctor rejects a managed custom agent that lacks an explicit pin. Built-in/automatic subagents are not part of the managed Groky path when their speed variant cannot be verified.
+
+Install removes leftover `grok-advisor` and `grok-architect` files. On launch, Groky replaces stale generated project copies of `global-groky-routing.mdc` from older templates instead of refusing to start.
 
 ### Commands
 
@@ -298,8 +298,8 @@ All managed models in this Cursor hierarchy are also pinned to `fast=false`.
 | --- | --- | --- | --- | --- |
 | `cyolo` | Codex | GPT Hierarchy v2 | Full bypass | Home trusted/sandboxed execution |
 | `codex-st` | Codex | GPT Hierarchy v2 | Normal | Home standard use |
-| `groky` | Cursor | Composer + Grok | `--yolo` | Work trusted autonomous execution |
-| `groky-safe` | Cursor | Composer + Grok | Normal | Work standard use |
+| `groky` | Cursor | Grok High + Composer | `--yolo` | Work trusted autonomous execution |
+| `groky-safe` | Cursor | Grok High + Composer | Normal | Work standard use |
 | `cursory` | Cursor | Sol/Terra/Luna | `--yolo` | Legacy Cursor autonomous mode |
 | `cagent` | Cursor | Sol/Terra/Luna | Normal | Legacy Cursor standard mode |
 | `codexy` | Codex | GPT Hierarchy v2 | Full bypass | Compatibility alias for `cyolo` |
@@ -386,7 +386,7 @@ git diff --check
 ./uninstall.sh --restore
 ```
 
-The backup workflow preserves Cursor's selected-model `fast=false` parameter.
+The backup workflow preserves Cursor's selected-model `fast=false` parameter and, when present, the Grok `effort` parameter.
 
 ## Security
 

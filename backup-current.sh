@@ -6,7 +6,7 @@ ROOT="$(cd -- "$(dirname -- "$0")" && pwd -P)"
 CURSOR_HOME="${CURSOR_HOME:-$HOME/.cursor}" CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
 STAGING="$(mktemp -d)"; trap 'rm -rf -- "$STAGING"' EXIT
 copy() { [[ -f "$1" ]] || { printf 'Missing required portable source: %s\n' "$1" >&2; exit 1; }; mkdir -p "$STAGING/$(dirname "$2")"; cp -- "$1" "$STAGING/$2"; }
-for n in sol-planner.md luna-worker.md terra-implementer.md terra-reviewer.md composer-owner.md grok-advisor.md grok-architect.md grok-reviewer.md grok-escalation.md; do copy "$CURSOR_HOME/agents/$n" "cursor/agents/$n"; done
+for n in sol-planner.md luna-worker.md terra-implementer.md terra-reviewer.md composer-owner.md grok-reviewer.md grok-escalation.md; do copy "$CURSOR_HOME/agents/$n" "cursor/agents/$n"; done
 for n in core.mdc execution-safety.mdc one-line-commands.mdc token-efficiency.mdc git-filesystem-safety.mdc minimal-diff.mdc model-routing.mdc groky-routing-template.mdc verification-before-done.mdc; do copy "$CURSOR_HOME/rules/$n" "cursor/rules/$n"; done
 copy "$CURSOR_HOME/hooks/cursor-st-command-guard.py" cursor/hooks/cursor-st-command-guard.py
 copy "$CURSOR_HOME/statusline.py" cursor/statusline.py
@@ -35,6 +35,8 @@ if isinstance(selected, dict) and isinstance(selected.get('modelId'), str):
         pid, value = parameter.get('id'), parameter.get('value')
         if pid == 'reasoning' and isinstance(value, str):
             parameters.append({'id': 'reasoning', 'value': value})
+        elif pid == 'effort' and isinstance(value, str):
+            parameters.append({'id': 'effort', 'value': value})
         elif pid == 'fast' and (isinstance(value, str) or isinstance(value, bool)):
             parameters.append({'id': 'fast', 'value': value})
     if not any(p.get('id') == 'fast' for p in parameters):

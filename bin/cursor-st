@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-WORKFLOW_VERSION='6.1.0'
+WORKFLOW_VERSION='6.2.1'
 MODE='sol'
 if [[ "${1:-}" == --groky ]]; then
   MODE='groky'
@@ -10,7 +10,7 @@ fi
 
 CURSOR_HOME="${CURSOR_HOME:-$HOME/.cursor}"
 SOL_PARENT_DISPLAY='gpt-5.6-sol high [fast=false]'
-GROKY_PARENT_DISPLAY='composer-2.5 [fast=false]'
+GROKY_PARENT_DISPLAY='grok-4.6 high [fast=false]'
 
 find_agent_bin() {
   if command -v agent >/dev/null 2>&1; then
@@ -97,17 +97,21 @@ SOL_TARGETS=(
 )
 GROKY_SOURCES=(
   "$CURSOR_HOME/agents/composer-owner.md"
-  "$CURSOR_HOME/agents/grok-advisor.md"
-  "$CURSOR_HOME/agents/grok-architect.md"
   "$CURSOR_HOME/agents/grok-reviewer.md"
   "$CURSOR_HOME/agents/grok-escalation.md"
 )
 GROKY_TARGETS=(
   ".cursor/agents/global-groky-composer-owner.md"
-  ".cursor/agents/global-groky-advisor.md"
-  ".cursor/agents/global-groky-architect.md"
   ".cursor/agents/global-groky-reviewer.md"
   ".cursor/agents/global-groky-escalation.md"
+)
+RETIRED_GROKY_SOURCES=(
+  "$CURSOR_HOME/agents/grok-advisor.md"
+  "$CURSOR_HOME/agents/grok-architect.md"
+)
+RETIRED_GROKY_TARGETS=(
+  ".cursor/agents/global-groky-advisor.md"
+  ".cursor/agents/global-groky-architect.md"
 )
 LEGACY_SOURCES=(
   "$CURSOR_HOME/agents/sol-reviewer.md"
@@ -131,6 +135,8 @@ remove_links() {
       for index in "${!SOL_SOURCES[@]}"; do source="${SOL_SOURCES[$index]}"; target="${SOL_TARGETS[$index]}"; remove_managed_link "$source" "$ROOT/$target"; remove_from_git_exclude "$ROOT" "$target"; done ;;
     groky)
       for index in "${!GROKY_SOURCES[@]}"; do source="${GROKY_SOURCES[$index]}"; target="${GROKY_TARGETS[$index]}"; remove_managed_link "$source" "$ROOT/$target"; remove_from_git_exclude "$ROOT" "$target"; done ;;
+    retired_groky)
+      for index in "${!RETIRED_GROKY_SOURCES[@]}"; do source="${RETIRED_GROKY_SOURCES[$index]}"; target="${RETIRED_GROKY_TARGETS[$index]}"; remove_managed_link "$source" "$ROOT/$target"; remove_from_git_exclude "$ROOT" "$target"; done ;;
     shared)
       for index in "${!SHARED_SOURCES[@]}"; do source="${SHARED_SOURCES[$index]}"; target="${SHARED_TARGETS[$index]}"; remove_managed_link "$source" "$ROOT/$target"; remove_from_git_exclude "$ROOT" "$target"; done ;;
     legacy)
@@ -144,6 +150,12 @@ render_groky_rule() {
   sed '0,/^alwaysApply: false$/s//alwaysApply: true/' "$GROKY_TEMPLATE" > "$destination"
 }
 
+is_managed_groky_rule() {
+  local path="$1"
+  [[ -f "$path" && ! -L "$path" ]] || return 1
+  grep -Fq '`cursor-st --groky` renders a project-local copy with `alwaysApply: true`.' "$path"
+}
+
 remove_groky_rule() {
   local target="$ROOT/$GROKY_RULE_TARGET" temp
   remove_from_git_exclude "$ROOT" "$GROKY_RULE_TARGET"
@@ -151,7 +163,13 @@ remove_groky_rule() {
   [[ -f "$target" && ! -L "$target" ]] || { printf 'Refusing to remove unrelated Groky rule target: %s\n' "$target" >&2; exit 1; }
   temp="$(mktemp)"
   render_groky_rule "$temp"
-  if cmp -s -- "$target" "$temp"; then rm -f -- "$target"; else rm -f -- "$temp"; printf 'Refusing to remove modified Groky rule target: %s\n' "$target" >&2; exit 1; fi
+  if cmp -s -- "$target" "$temp" || is_managed_groky_rule "$target"; then
+    rm -f -- "$target"
+  else
+    rm -f -- "$temp"
+    printf 'Refusing to remove modified Groky rule target: %s\n' "$target" >&2
+    exit 1
+  fi
   rm -f -- "$temp"
 }
 
@@ -161,11 +179,20 @@ ensure_groky_rule() {
   temp="$(mktemp)"
   render_groky_rule "$temp"
   if [[ -e "$target" || -L "$target" ]]; then
-    [[ -f "$target" && ! -L "$target" ]] && cmp -s -- "$target" "$temp" || { rm -f -- "$temp"; printf 'Refusing to replace unrelated project file: %s\n' "$target" >&2; exit 1; }
+    if [[ -f "$target" && ! -L "$target" ]] && cmp -s -- "$target" "$temp"; then
+      rm -f -- "$temp"
+    elif is_managed_groky_rule "$target"; then
+      cp -- "$temp" "$target"
+      rm -f -- "$temp"
+    else
+      rm -f -- "$temp"
+      printf 'Refusing to replace unrelated project file: %s\n' "$target" >&2
+      exit 1
+    fi
   else
     cp -- "$temp" "$target"
+    rm -f -- "$temp"
   fi
-  rm -f -- "$temp"
   exclude_from_git "$ROOT" "$GROKY_RULE_TARGET"
 }
 
@@ -183,6 +210,7 @@ link_group() {
 
 setup_project() {
   remove_links legacy
+  remove_links retired_groky
   if [[ "$ROOT" == "$HOME" ]]; then
     [[ "$MODE" == groky ]] && printf 'Warning: Groky project routing is not injected when the workspace root is HOME.\n' >&2
     return 0
@@ -202,6 +230,7 @@ setup_project() {
 clean_project() {
   remove_links sol
   remove_links groky
+  remove_links retired_groky
   remove_links shared
   remove_links legacy
   remove_groky_rule
@@ -238,8 +267,8 @@ except (OSError, json.JSONDecodeError) as exc:
 if not isinstance(data, dict):
     raise SystemExit("cannot enforce non-Fast Cursor parent: config root must be an object")
 if mode == "groky":
-    model_id = "composer-2.5"
-    parameters = [{"id": "fast", "value": "false"}]
+    model_id = "grok-4.6"
+    parameters = [{"id": "effort", "value": "high"}, {"id": "fast", "value": "false"}]
     explore = "composer-2.5[fast=false]"
 else:
     model_id = "gpt-5.6-sol"
@@ -270,27 +299,28 @@ show_flow() {
   if [[ "$MODE" == groky ]]; then
     cat <<EOF
 Workflow version:   $WORKFLOW_VERSION
-Mode:               Composer + Grok (Groky)
-Composer parent:    $GROKY_PARENT_DISPLAY
-Composer delegate:  composer-2.5 [fast=false]
-Grok advisor:       grok-4.6 medium [fast=false], read-only
-Grok architect:     grok-4.6 high [fast=false], read-only
-Grok reviewer:      grok-4.6 high [fast=false], read-only
+Mode:               Grok High + Composer (Groky)
+Grok High parent:   $GROKY_PARENT_DISPLAY
+Composer implementer: composer-2.5 [fast=false]
+Grok reviewer:      grok-4.6 high [fast=false], read-only fresh-context review
 Grok escalation:    grok-4.6 xhigh [fast=false], read-only
+Explore:            composer-2.5 [fast=false]
 
 Default:
-  Composer -> implement -> deterministic validation -> diff inspection -> done
+  Grok High parent inspects and either implements a small local change or
+  delegates bulk work to Composer -> deterministic validation -> diff inspection -> done
 Important:
-  Composer -> validate -> Grok High review -> Composer fixes -> validate -> done
+  Parent/Composer implement -> validate -> Grok High reviewer -> fixes -> validate -> done
 Architectural:
-  Grok High architecture -> Composer implementation -> validate -> Grok High review
+  Grok High parent plans -> Composer implements -> validate -> Grok High reviewer
 Exceptional:
-  Composer/Grok High remain materially uncertain -> Grok xHigh advice -> Composer
+  Grok High remains materially uncertain -> Grok xHigh advice -> Composer/parent
 
 Fast policy:
   Every managed model is pinned to fast=false. The launcher passes --model
-  composer-2.5[fast=false] so the CLI cannot fall back to Auto / Auto Balance.
+  grok-4.6[effort=high,fast=false] so the CLI cannot fall back to Auto / Auto Balance.
   It also rewrites selected parent/explore fields to non-Fast before launch.
+  Advisor and architect roles are folded into the Grok High parent.
 EOF
   else
     cat <<EOF
@@ -365,6 +395,6 @@ assert_custom_agents_nonfast
 select_parent_nonfast
 cd -- "$ROOT"
 if [[ "$MODE" == groky ]]; then
-  exec "$(find_agent_bin)" --model 'composer-2.5[fast=false]' "$@"
+  exec "$(find_agent_bin)" --model 'grok-4.6[effort=high,fast=false]' "$@"
 fi
 exec "$(find_agent_bin)" --model 'gpt-5.6-sol-high[fast=false]' "$@"

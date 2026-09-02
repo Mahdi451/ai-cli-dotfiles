@@ -2,63 +2,61 @@
 alwaysApply: false
 ---
 
-# Composer 2.5 + Grok 4.6 Routing Template
+# Grok 4.6 High + Composer 2.5 Routing Template
 
 This rule is a dormant template in the user rules directory. `cursor-st --groky` renders a project-local copy with `alwaysApply: true`. Do not apply this template in ordinary `cursor-st` sessions.
 
-When active, Composer 2.5 is the parent and primary task owner. Keep normal work in the parent context. Do not delegate merely because subagents exist.
+When active, Grok 4.6 High is the parent and primary task owner. Keep judgment, architecture, routing, small local edits, integration, and signoff in the parent. Do not delegate merely because subagents exist.
 
 ## Non-Fast invariant
 
 Every managed model in this hierarchy must run with `fast=false`.
 
-- Composer parent: `composer-2.5`, with the launcher forcing selected-model `fast=false` immediately before startup.
+- Grok High parent: `grok-4.6`, with the launcher forcing selected-model `effort=high` and `fast=false` immediately before startup.
 - `composer-owner`: `composer-2.5[fast=false]`.
-- `grok-advisor`: `grok-4.6[effort=medium,fast=false]`.
-- `grok-architect`: `grok-4.6[effort=high,fast=false]`.
 - `grok-reviewer`: `grok-4.6[effort=high,fast=false]`.
 - `grok-escalation`: `grok-4.6[effort=xhigh,fast=false]`.
 
 Do not switch Fast on to reduce latency. Do not use an unspecified custom-agent model when a pinned role exists. Prefer direct parent tool use or the pinned custom agents over built-in/automatic subagents whose speed variant cannot be verified.
 
+Do not invoke `grok-advisor` or `grok-architect`. Those roles are folded into the Grok High parent. Do not use the Sol/Terra/Luna custom agents in Groky mode. Do not create a permanent Grok Low worker.
+
 ## Default path
 
-Composer -> inspect relevant code -> lightweight plan when needed -> implement -> deterministic validation -> inspect diff -> done
+Grok High parent -> inspect relevant code -> lightweight plan when needed -> implement a small local change or delegate bulk work to `composer-owner` -> deterministic validation -> inspect diff -> done
 
-Routine work does not require Grok.
+Routine work does not require `grok-reviewer` or `grok-escalation`.
 
-## Grok roles
+## Roles
 
-- `grok-advisor`: Grok 4.6 Medium, read-only. Use for targeted difficult reasoning/debugging after a credible Composer attempt.
-- `grok-architect`: Grok 4.6 High, read-only. Use before implementation for consequential architecture, security, persistence/migrations, concurrency/synchronization, public APIs/interfaces, or large cross-cutting changes.
-- `grok-reviewer`: Grok 4.6 High, read-only. Use after deterministic validation for important/high-risk integrated changes where independent review materially reduces risk.
-- `grok-escalation`: Grok 4.6 xHigh, read-only. Use only after credible Composer and Grok High attempts leave material uncertainty.
+- Parent: Grok 4.6 High. Owns inspection, architecture, acceptance criteria, routing, debugging, small local implementation, integration, and final signoff.
+- `composer-owner`: Composer 2.5. Use for bulk, mechanical, multi-file, fixture/boilerplate, or test-writing implementation after the parent has defined the approach. Do not use this role merely to duplicate the parent context.
+- `grok-reviewer`: Grok 4.6 High, read-only. Use after deterministic validation for important/high-risk integrated changes. This is a fresh-context pass, not a stronger model than the parent.
+- `grok-escalation`: Grok 4.6 xHigh, read-only. Use only after credible Grok High parent attempts leave material uncertainty.
 
-Do not use the Sol/Terra/Luna custom agents in Groky mode. Do not create a permanent Grok Low worker. Composer owns normal implementation, and extra delegation can cost more context than it saves.
+The parent may implement small local changes itself. Delegate to `composer-owner` when the work is large, mechanical, repetitive, multi-file, or mostly boilerplate. Do not implement large diffs in the parent merely to avoid a handoff.
 
 ## Routing
 
 ### Routine
 
-Composer -> implement -> validate -> inspect diff -> done
+Parent inspects -> parent implements a small local change or `composer-owner` implements bulk work -> validate -> inspect diff -> done
 
 ### Important
 
-Composer -> implement -> validate -> compact handoff -> `grok-reviewer` -> Composer fixes valid findings -> validate -> done
+Parent/`composer-owner` implement -> validate -> compact handoff -> `grok-reviewer` -> parent or Composer fixes valid findings -> validate -> done
 
 ### Architectural
 
-Composer gathers minimum relevant context -> `grok-architect` -> Composer implements -> validate -> `grok-reviewer` -> Composer fixes valid findings -> validate -> done
+Parent plans architecture, constraints, and acceptance criteria -> `composer-owner` implements -> validate -> `grok-reviewer` -> parent or Composer fixes valid findings -> validate -> done
 
 ### Stalled
 
-Composer makes credible focused attempts -> `grok-advisor` -> Composer implements recommendation -> validate.
-
-If substantial uncertainty remains, use `grok-architect` or `grok-reviewer` as appropriate. Use `grok-escalation` only as the final reasoning escalation.
+Parent makes credible focused debug/design attempts. Use `grok-escalation` only as the final reasoning escalation, then parent or Composer implements.
 
 ## Compact handoff
 
-Before any Grok delegation, provide only what the next agent needs:
+Before Composer, reviewer, or escalation delegation, provide only what the next agent needs:
 
 - objective
 - acceptance criteria
@@ -69,18 +67,19 @@ Before any Grok delegation, provide only what the next agent needs:
 - observed failure or uncertainty
 - current git diff when reviewing implementation
 
-The Grok agent should expand repository exploration only when a concrete concern requires it.
+The receiving agent should expand repository exploration only when a concrete concern requires it.
 
 ## Token-efficiency and reliability
 
 1. Prefer deterministic tests/checks over extra model-review passes.
 2. Avoid duplicate repository exploration across parent and subagents.
-3. Keep implementation ownership with Composer unless escalation materially improves the chance of success.
-4. Prefer the custom Grok agents above over unspecified/built-in subagents when a Grok escalation is required.
+3. Keep bulk implementation with Composer unless a small local parent edit is cheaper than the handoff.
+4. Prefer the pinned custom agents above over unspecified/built-in subagents.
 5. Do not run writing agents concurrently on overlapping files unless isolated worktrees are explicitly used.
 6. Re-review after fixes only when the fix is substantial, the reviewer requested it, or the area is high-risk.
 7. Keep changes minimal and avoid unrelated cleanup.
+8. Do not spawn a second Grok High agent for architecture or debugging; the parent already is Grok High.
 
 ## Completion
 
-Routine work may complete with Composer after relevant validation and diff inspection. Consequential work is complete after relevant deterministic validation and any required Grok findings are handled. State remaining limitations honestly.
+Routine work may complete with the parent after relevant validation and diff inspection. Consequential work is complete after relevant deterministic validation and any required reviewer or escalation findings are handled. State remaining limitations honestly.

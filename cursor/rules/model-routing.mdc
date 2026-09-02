@@ -9,8 +9,9 @@ criteria, integrated-diff review, and final signoff. It may directly implement
 hard work when appropriate.
 
 This is the original Sol/Terra/Luna Cursor workflow. Do not use `composer-owner`,
-`grok-advisor`, `grok-architect`, `grok-reviewer`, or `grok-escalation` here;
-those agents are reserved for sessions launched with `cursor-st --groky`.
+`grok-reviewer`, or `grok-escalation` here; those agents are reserved for
+sessions launched with `cursor-st --groky`. Do not use leftover `grok-advisor`
+or `grok-architect` files; those Groky roles are retired.
 
 ## Non-Fast invariant
 

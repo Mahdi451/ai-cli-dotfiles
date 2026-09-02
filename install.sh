@@ -35,6 +35,12 @@ if [[ "$INSTALL_CURSOR" == true ]]; then
   for source in "$ROOT"/cursor/agents/*.md "$ROOT"/cursor/rules/*.mdc; do
     install_asset "$source" "$CURSOR_HOME/${source#"$ROOT/cursor/"}"
   done
+  for retired in grok-advisor.md grok-architect.md; do
+    target="$CURSOR_HOME/agents/$retired"
+    [[ -e "$target" || -L "$target" ]] || continue
+    backup_existing "$target" "$BACKUP_DIR"
+    [[ "$DRY_RUN" == true ]] || rm -f -- "$target"
+  done
   install_asset "$ROOT/cursor/hooks/cursor-st-command-guard.py" "$CURSOR_HOME/hooks/cursor-st-command-guard.py"
   install_asset "$ROOT/cursor/statusline.py" "$CURSOR_HOME/statusline.py"
   install_asset "$ROOT/bin/cursor-st" "$HOME/.local/bin/cursor-st"

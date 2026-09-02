@@ -1,6 +1,6 @@
 # Cursor Groky hierarchy
 
-Groky is the token-conscious Cursor CLI workflow built around Composer 2.5 as the parent and Grok 4.6 as conditional senior reasoning/review. It is implemented as a mode of the existing guarded `cursor-st` launcher rather than as a second executable.
+Groky is the Grok-led Cursor CLI workflow: Grok 4.6 High is the parent, and Composer 2.5 is the implementer. Independent High review and xHigh escalation remain conditional. It is implemented as a mode of the existing guarded `cursor-st` launcher rather than as a second executable.
 
 ## Commands
 
@@ -18,43 +18,42 @@ groky "implement the reviewed change and validate it"
 
 ```text
 Routine:
-  Composer 2.5 -> implement -> deterministic validation -> diff inspection -> done
-
-Stalled:
-  Composer -> Grok 4.6 Medium advisor -> Composer -> validate
+  Grok 4.6 High parent -> small local edit or Composer 2.5 bulk implement
+    -> deterministic validation -> diff inspection -> done
 
 Important:
-  Composer -> validate -> Grok 4.6 High reviewer -> Composer fixes -> validate -> done
+  Parent/Composer implement -> validate -> Grok 4.6 High reviewer
+    -> parent/Composer fixes -> validate -> done
 
 Architectural:
-  Grok 4.6 High architect -> Composer -> validate -> Grok High reviewer -> done
+  Grok High parent plans -> Composer implements -> validate
+    -> Grok High reviewer -> done
 
 Exceptional:
-  Composer/Grok High remain uncertain -> Grok 4.6 xHigh advisor -> Composer -> validate
+  Grok High remains uncertain -> Grok 4.6 xHigh advisor -> Composer/parent -> validate
 ```
 
-Grok agents are read-only. Composer owns implementation.
+`grok-advisor` and `grok-architect` are retired; those roles are folded into the Grok High parent. `grok-reviewer` and `grok-escalation` are read-only. Composer owns bulk implementation.
 
 ## Fast policy: always off
 
 Fast mode is never part of the managed hierarchy.
 
 ```text
-Composer parent    composer-2.5 + fast=false
-Composer delegate  composer-2.5[fast=false]
-grok-advisor       grok-4.6[effort=medium,fast=false]
-grok-architect     grok-4.6[effort=high,fast=false]
-grok-reviewer      grok-4.6[effort=high,fast=false]
-grok-escalation    grok-4.6[effort=xhigh,fast=false]
+Grok High parent       grok-4.6[effort=high,fast=false]
+Composer implementer   composer-2.5[fast=false]
+grok-reviewer          grok-4.6[effort=high,fast=false]
+grok-escalation        grok-4.6[effort=xhigh,fast=false]
+Explore                composer-2.5[fast=false]
 ```
 
-`cursor-st --groky` launches the Cursor CLI with `--model composer-2.5[fast=false]`. That argv pin is required: without it the CLI defaults to `auto` / Auto Balance. The launcher also rewrites `cli-config.json` to Composer with `fast=false` and rejects caller `--model`/`-m` overrides. It sets Explore to an explicit non-Fast Composer selection as a defensive preference. Custom agents are independently pinned with bracket parameters, and `cursor-st --groky --doctor` rejects a managed custom agent that lacks an explicit `fast=false` model pin.
+`cursor-st --groky` launches the Cursor CLI with `--model grok-4.6[effort=high,fast=false]`. That argv pin is required: without it the CLI defaults to `auto` / Auto Balance. The launcher also rewrites `cli-config.json` to Grok 4.6 High with `fast=false`, keeps Explore on non-Fast Composer, and rejects caller `--model`/`-m` overrides. Custom agents are independently pinned with bracket parameters, and `cursor-st --groky --doctor` rejects a managed custom agent that lacks an explicit `fast=false` model pin.
 
 Because Cursor has had known issues around automatic/built-in subagent model variants, those are not part of the Groky hierarchy. Prefer direct parent tools or the pinned custom agents when model speed must be deterministic.
 
 ## Workflow isolation
 
-The repository installs `groky-routing-template.mdc` as a dormant user rule with `alwaysApply: false`. When `cursor-st --groky` starts inside a project, it renders a managed project-local copy with `alwaysApply: true`, links the Composer/Grok agents, and removes matching Sol/Terra/Luna project links. Those generated project files are excluded through `.git/info/exclude`.
+The repository installs `groky-routing-template.mdc` as a dormant user rule with `alwaysApply: false`. When `cursor-st --groky` starts inside a project, it renders a managed project-local copy with `alwaysApply: true`, links the Composer implementer and Grok reviewer/escalation agents, removes retired advisor/architect project links, and removes matching Sol/Terra/Luna project links. Stale generated copies from an older Groky template are replaced. Those generated project files are excluded through `.git/info/exclude`.
 
 When normal `cursor-st` starts again, it removes the matching Groky project files before restoring the Sol/Terra/Luna project links. The user-level Grok agent definitions remain installed, but their descriptions and both routing rules explicitly restrict them to Groky sessions.
 

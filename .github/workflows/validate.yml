@@ -39,7 +39,7 @@ jobs:
           grep -Fqx "alias groky-safe='cursor-st --groky'" shell/ai-cli-aliases.sh
           grep -Fqx "alias cursory='cursor-st --yolo'" shell/ai-cli-aliases.sh
           grep -Fqx "alias cagent='cursor-st'" shell/ai-cli-aliases.sh
-          grep -F "exec \"\$(find_agent_bin)\" --model 'composer-2.5[fast=false]'" bin/cursor-st
+          grep -F "exec \"\$(find_agent_bin)\" --model 'grok-4.6[effort=high,fast=false]'" bin/cursor-st
           grep -F "exec \"\$(find_agent_bin)\" --model 'gpt-5.6-sol-high[fast=false]'" bin/cursor-st
 
       - name: Whitespace check
