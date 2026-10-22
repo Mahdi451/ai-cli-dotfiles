@@ -19,7 +19,7 @@ Every managed model in this hierarchy must run with `fast=false`.
 
 Do not switch Fast on to reduce latency. Do not use an unspecified custom-agent model when a pinned role exists. Prefer direct parent tool use or the pinned custom agents over built-in/automatic subagents whose speed variant cannot be verified.
 
-Do not invoke `grok-advisor` or `grok-architect`. Those roles are folded into the Grok High parent. Do not use the Sol/Terra/Luna custom agents in Groky mode. Do not create a permanent Grok Low worker.
+Do not invoke `grok-advisor` or `grok-architect`. Those roles are folded into the Grok High parent. Do not use the Sol/Terra/Luna or Opus (`opus-composer`, `opus-reviewer`, `opus-escalation`) custom agents in Groky mode. Do not create a permanent Grok Low worker.
 
 ## Default path
 

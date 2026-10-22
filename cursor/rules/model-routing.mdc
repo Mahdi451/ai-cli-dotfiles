@@ -1,8 +1,10 @@
 ---
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Model Routing Workflow
+
+`cursor-st` renders a project-local copy of this Sol routing rule with `alwaysApply: true` for Sol/Terra/Luna sessions only; the user-level template stays dormant.
 
 The Sol High parent leads ordinary repository inspection, planning, acceptance
 criteria, integrated-diff review, and final signoff. It may directly implement
@@ -10,7 +12,9 @@ hard work when appropriate.
 
 This is the original Sol/Terra/Luna Cursor workflow. Do not use `composer-owner`,
 `grok-reviewer`, or `grok-escalation` here; those agents are reserved for
-sessions launched with `cursor-st --groky`. Do not use leftover `grok-advisor`
+sessions launched with `cursor-st --groky`. Do not use `opus-composer`,
+`opus-reviewer`, or `opus-escalation`; those are reserved for `cursor-st --opus`.
+Do not use leftover `grok-advisor`
 or `grok-architect` files; those Groky roles are retired.
 
 ## Non-Fast invariant

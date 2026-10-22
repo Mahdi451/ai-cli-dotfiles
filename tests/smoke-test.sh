@@ -13,6 +13,8 @@ printf '%s\n' '{"authInfo":{"token":"runtime-only"},"modelSelectionHistory":["ol
 run "$first" "$ROOT/install.sh" --copy
 [[ -f "$first/.cursor/cli-config.json" && -f "$first/.codex/config.toml" ]]
 [[ -f "$first/.cursor/agents/composer-owner.md" && -f "$first/.cursor/agents/grok-reviewer.md" && -f "$first/.cursor/agents/grok-escalation.md" ]]
+[[ -f "$first/.cursor/agents/opus-composer.md" && -f "$first/.cursor/agents/opus-reviewer.md" && -f "$first/.cursor/agents/opus-escalation.md" && -f "$first/.cursor/rules/opus-routing-template.mdc" ]]
+grep -Fqx 'alwaysApply: false' "$first/.cursor/rules/model-routing.mdc"
 [[ ! -e "$first/.cursor/agents/grok-advisor.md" && ! -e "$first/.cursor/agents/grok-architect.md" ]]
 printf '%s\n' leftover-retired-agent > "$first/.cursor/agents/grok-advisor.md"
 printf '%s\n' leftover-retired-agent > "$first/.cursor/agents/grok-architect.md"
@@ -26,6 +28,7 @@ PY
 python3 - "$first/.cursor/cli-config.json" <<'PY'
 import json,sys
 x=json.load(open(sys.argv[1])); assert x['model']['modelId']=='gpt-5.6-sol'; assert any(p.get('id')=='fast' and str(p.get('value')).lower()=='false' for p in x['selectedModel']['parameters']); assert 'approvalMode' not in x; assert x['authInfo']['token']=='runtime-only'; assert x['modelSelectionHistory']==['old']; assert x['unknownRuntime']
+assert x['exploreSubagentModel']=='default'; assert x['subagentModels']['explore']['modelId']=='gpt-5.6-sol'
 PY
 run "$first" "$ROOT/doctor.sh"
 python3 - "$first/.cursor/cli-config.json" <<'PY'
@@ -103,6 +106,40 @@ This rule is a dormant template in the user rules directory. `cursor-st --groky`
 EOF
 run "$third" env --chdir="$groky_repo" "$third/.local/bin/cursor-st" --setup-only >/dev/null
 [[ ! -e "$groky_repo/.cursor/rules/global-groky-routing.mdc" ]]
+grep -Fqx 'alwaysApply: true' "$groky_repo/.cursor/rules/global-model-routing.mdc"
+[[ -f "$groky_repo/.cursor/rules/global-model-routing.mdc" && ! -L "$groky_repo/.cursor/rules/global-model-routing.mdc" ]]
+run "$third" "$third/.local/bin/cursor-st" --opus --show-flow > "$TEST_ROOT/opus-flow.txt"
+rg -Fq "Opus High parent:" "$TEST_ROOT/opus-flow.txt"
+rg -Fq "claude-opus-5-5-high" "$TEST_ROOT/opus-flow.txt"
+run "$third" "$third/.local/bin/cursor-st" --opus --doctor >/dev/null
+if run "$third" "$third/.local/bin/cursor-st" --yolo --opus >/dev/null 2>&1; then exit 1; fi
+run "$third" env --chdir="$groky_repo" "$third/.local/bin/cursor-st" --opus --setup-only >/dev/null
+grep -Fqx 'alwaysApply: true' "$groky_repo/.cursor/rules/global-opus-routing.mdc"
+rg -Fq "Claude Opus 5.5 High is the parent" "$groky_repo/.cursor/rules/global-opus-routing.mdc"
+[[ ! -e "$groky_repo/.cursor/rules/global-model-routing.mdc" && ! -e "$groky_repo/.cursor/rules/global-groky-routing.mdc" ]]
+[[ -L "$groky_repo/.cursor/agents/global-opus-composer.md" && -L "$groky_repo/.cursor/agents/global-opus-reviewer.md" && -L "$groky_repo/.cursor/agents/global-opus-escalation.md" ]]
+[[ ! -e "$groky_repo/.cursor/agents/global-sol-planner.md" && ! -e "$groky_repo/.cursor/agents/global-groky-composer-owner.md" ]]
+grep -Fqx '.cursor/rules/global-opus-routing.mdc' "$groky_repo/.git/info/exclude"
+run "$third" env --chdir="$groky_repo" "$third/.local/bin/cursor-st" --groky --setup-only >/dev/null
+[[ ! -e "$groky_repo/.cursor/rules/global-opus-routing.mdc" && ! -e "$groky_repo/.cursor/agents/global-opus-composer.md" ]]
+rm -f "$groky_repo/.cursor/rules/global-groky-routing.mdc"
+ln -s "$third/.cursor/rules/model-routing.mdc" "$groky_repo/.cursor/rules/global-model-routing.mdc"
+run "$third" env --chdir="$groky_repo" "$third/.local/bin/cursor-st" --opus --setup-only >/dev/null
+[[ ! -e "$groky_repo/.cursor/rules/global-model-routing.mdc" && ! -L "$groky_repo/.cursor/rules/global-model-routing.mdc" ]]
+run "$third" env --chdir="$groky_repo" "$third/.local/bin/cursor-st" --clean-project >/dev/null
+[[ ! -e "$groky_repo/.cursor/rules/global-opus-routing.mdc" && ! -e "$groky_repo/.cursor/agents/global-opus-composer.md" ]]
+opus_home="$(make_home)"; run "$opus_home" "$ROOT/install.sh" --copy >/dev/null
+opus_repo="$(mktemp -d "$TEST_ROOT/opus-repo.XXXXXX")"; git -C "$opus_repo" init -q
+run "$opus_home" env --chdir="$opus_repo" "$opus_home/.local/bin/cursor-st" --opus --yolo >/dev/null
+python3 - "$opus_home/.cursor/cli-config.json" <<'PY'
+import json,sys
+x=json.load(open(sys.argv[1])); assert x['model']['modelId']=='claude-opus-5-5'
+assert x['selectedModel']=={'modelId':'claude-opus-5-5','parameters':[{'id':'context','value':'300k'},{'id':'effort','value':'high'},{'id':'fast','value':'false'}]}
+assert x['exploreSubagentModel']=='default'
+assert x['subagentModels']['explore']=={'modelId':'composer-2.5','parameters':[{'id':'fast','value':'false'}]}
+PY
+sed -i 's/^model: claude-opus-5-5-medium$/model: claude-opus-5-5-medium-fast/' "$opus_home/.cursor/agents/opus-reviewer.md"
+if run "$opus_home" env --chdir="$opus_repo" "$opus_home/.local/bin/cursor-st" --opus >/dev/null 2>&1; then exit 1; fi
 python3 - "$third/.cursor/cli-config.json" <<'PY'
 import json,sys
 x=json.load(open(sys.argv[1])); assert x['approvalMode']=='unrestricted'; assert x['sandbox']['mode']=='disabled'
@@ -131,6 +168,7 @@ PY
 for rule in core execution-safety one-line-commands token-efficiency git-filesystem-safety minimal-diff model-routing verification-before-done; do [[ -f "$ROOT/cursor/rules/$rule.mdc" ]]; done
 [[ -f "$ROOT/cursor/agents/composer-owner.md" && -f "$ROOT/shell/ai-cli-aliases.sh" ]]
 grep -Fq "exec \"\$(find_agent_bin)\" --model 'grok-4.7-high'" "$ROOT/bin/cursor-st"
+grep -Fq "exec \"\$(find_agent_bin)\" --model 'claude-opus-5-5-high'" "$ROOT/bin/cursor-st"
 grep -Fq "exec \"\$(find_agent_bin)\" --model 'gpt-5.6-sol-high[fast=false]'" "$ROOT/bin/cursor-st"
 run "$third" "$ROOT/uninstall.sh" --restore --force
 [[ ! -e "$third/.local/bin/cursor-st" ]]

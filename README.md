@@ -10,6 +10,7 @@ Portable Linux/WSL configuration for opinionated Cursor and Codex CLI workflows:
 | --- | --- | --- | --- | --- | --- |
 | **GPT Hierarchy v2** | `cyolo` | `codex-st` | Terra Medium | Sol High / Sol Max | Home Codex workflow |
 | **Groky** | `groky` | `groky-safe` | Grok 4.7 High | Composer 2.5 / Grok xHigh | Grok-led Cursor workflow |
+| **Opus** | `opus` | `opusn` | Claude Opus 5.5 High | Composer 2.5 / Opus xHigh | Opus-led Cursor workflow |
 | **Original Cursor** | `cursory` | `cagent` | Sol High | Sol Max | Legacy Sol/Terra/Luna Cursor workflow |
 
 ### Launcher map
@@ -262,6 +263,44 @@ See [`cursor/GROKY.md`](cursor/GROKY.md) and [`cursor/prompts/groky-workflow.md`
 
 ---
 
+# Opus — Claude Opus 5.5 High + Composer 2.5 Cursor workflow
+
+Opus is the Opus-led work hierarchy: Claude Opus 5.5 High (300K context) owns inspection, architecture, routing, risky or unsettled edits, and signoff; Composer 2.5 writes gated bulk work; Opus review and xHigh escalation remain conditional.
+
+```text
+Routine:
+  Opus High parent implements, or delegates gated bulk work to Composer
+  (approach decided; 3+ files, repetitive, or mostly tests/fixtures)
+    -> validate -> diff inspection -> done
+
+Consequential review:
+  Composer-written change touching security, auth, persistence,
+  concurrency, public API, or migrations -> validate -> Opus reviewer
+    -> parent/Composer fixes -> validate -> done
+
+Stalled:
+  Opus xHigh only after credible Opus High parent attempts
+```
+
+| Role | Model |
+| --- | --- |
+| Opus High parent | `claude-opus-5-5-high` (config: `claude-opus-5-5`, `context=300k`, `effort=high`, `fast=false`) |
+| `opus-composer` | `composer-2.5[fast=false]` |
+| `opus-reviewer` | `claude-opus-5-5-medium` |
+| `opus-escalation` | `claude-opus-5-5-xhigh` |
+| Explore | `composer-2.5[fast=false]` |
+
+`cursor-st --opus` launches with `--model claude-opus-5-5-high`, rewrites the selected parent and `subagentModels.explore` in `cli-config.json` before startup (current CLIs accept only `default`/`inherit` in `exploreSubagentModel`, so every mode pins Explore through `subagentModels.explore`), and renders `global-opus-routing.mdc` into the project. The doctor rejects Fast Opus slugs and Composer pins without `fast=false`.
+
+```bash
+opusn "Implement the requested change and validate it."   # normal approvals
+opus  "Implement the reviewed change and validate it."    # cursor-st --opus --yolo
+```
+
+Each Cursor mode renders only its own routing rule into the project (`global-model-routing.mdc`, `global-groky-routing.mdc`, or `global-opus-routing.mdc`) and removes the others; the user-level templates stay dormant, so hierarchies never collide in one session.
+
+---
+
 # Original Cursor — Sol / Terra / Luna
 
 The original managed Cursor hierarchy remains available for compatibility.
@@ -300,6 +339,8 @@ All managed models in this Cursor hierarchy are also pinned to `fast=false`.
 | `codex-st` | Codex | GPT Hierarchy v2 | Normal | Home standard use |
 | `groky` | Cursor | Grok High + Composer | `--yolo` | Work trusted autonomous execution |
 | `groky-safe` | Cursor | Grok High + Composer | Normal | Work standard use |
+| `opus` | Cursor | Opus High + Composer | `--yolo` | Work trusted autonomous execution |
+| `opusn` | Cursor | Opus High + Composer | Normal | Work standard use |
 | `cursory` | Cursor | Sol/Terra/Luna | `--yolo` | Legacy Cursor autonomous mode |
 | `cagent` | Cursor | Sol/Terra/Luna | Normal | Legacy Cursor standard mode |
 | `codexy` | Codex | GPT Hierarchy v2 | Full bypass | Compatibility alias for `cyolo` |
@@ -344,6 +385,10 @@ cursor-st --doctor
 # Groky
 cursor-st --groky --show-flow
 cursor-st --groky --doctor
+
+# Opus
+cursor-st --opus --show-flow
+cursor-st --opus --doctor
 
 # GPT Hierarchy v2
 codex-st --show-flow
@@ -392,6 +437,6 @@ The backup workflow preserves Cursor's selected-model `fast=false` parameter and
 
 Never commit credentials, authentication JSON, private keys, `.env` files, sessions, logs, model history, local databases, machine trust entries, or other secrets.
 
-The repository scanner is a guardrail, not permission to commit sensitive material. High-autonomy aliases (`cyolo`, `groky`, `cursory`) should only be used in trusted or appropriately sandboxed environments.
+The repository scanner is a guardrail, not permission to commit sensitive material. High-autonomy aliases (`cyolo`, `groky`, `opus`, `cursory`) should only be used in trusted or appropriately sandboxed environments.
 
 Repository validation proves the portable configuration is internally consistent; it does not prove account access, model availability, or that unrestricted execution is safe in a particular project.

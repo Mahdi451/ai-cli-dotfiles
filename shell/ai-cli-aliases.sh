@@ -9,6 +9,10 @@ alias cdoctor='cursor-st --doctor'
 alias groky='cursor-st --groky --yolo'
 alias groky-safe='cursor-st --groky'
 
+# Composer 2.5 + Claude Opus 5.5 High Cursor hierarchy. Fast is enforced off by cursor-st.
+alias opus='cursor-st --opus --yolo'
+alias opusn='cursor-st --opus'
+
 # Codex GPT Hierarchy v2. `cyolo` is the canonical full-approval home alias.
 # Codex has no Cursor Fast toggle.
 if command -v codex >/dev/null 2>&1; then

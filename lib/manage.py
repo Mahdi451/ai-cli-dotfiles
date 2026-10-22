@@ -255,7 +255,7 @@ def merge_cursor_config(destination: str, template_path: str, cursor_home: str, 
     if not isinstance(current, dict) or not isinstance(template, dict):
         print("cannot merge Cursor config: both files must contain objects", file=sys.stderr)
         return 1
-    allow = ("version", "permissions", "editor", "display", "notifications", "hints", "modelSlashCommands", "rewind", "exploreSubagentModel", "autoAcceptWebSearch", "network", "attribution", "statusLine", "model", "selectedModel")
+    allow = ("version", "permissions", "editor", "display", "notifications", "hints", "modelSlashCommands", "rewind", "exploreSubagentModel", "subagentModels", "autoAcceptWebSearch", "network", "attribution", "statusLine", "model", "selectedModel")
     for key in allow:
         if key in template:
             current[key] = template[key]
@@ -276,7 +276,7 @@ def validate_cursor_config(destination: str, template_path: str, cursor_home: st
         return 1
     if not isinstance(current, dict) or not isinstance(template, dict):
         return 1
-    for key in ("version", "permissions", "editor", "display", "notifications", "hints", "modelSlashCommands", "rewind", "exploreSubagentModel", "autoAcceptWebSearch", "network", "attribution"):
+    for key in ("version", "permissions", "editor", "display", "notifications", "hints", "modelSlashCommands", "rewind", "exploreSubagentModel", "subagentModels", "autoAcceptWebSearch", "network", "attribution"):
         if current.get(key) != template.get(key):
             print(f"invalid managed Cursor config: {key} differs", file=sys.stderr)
             return 1

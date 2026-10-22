@@ -6,8 +6,8 @@ ROOT="$(cd -- "$(dirname -- "$0")" && pwd -P)"
 CURSOR_HOME="${CURSOR_HOME:-$HOME/.cursor}" CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
 STAGING="$(mktemp -d)"; trap 'rm -rf -- "$STAGING"' EXIT
 copy() { [[ -f "$1" ]] || { printf 'Missing required portable source: %s\n' "$1" >&2; exit 1; }; mkdir -p "$STAGING/$(dirname "$2")"; cp -- "$1" "$STAGING/$2"; }
-for n in sol-planner.md luna-worker.md terra-implementer.md terra-reviewer.md composer-owner.md grok-reviewer.md grok-escalation.md; do copy "$CURSOR_HOME/agents/$n" "cursor/agents/$n"; done
-for n in core.mdc execution-safety.mdc one-line-commands.mdc token-efficiency.mdc git-filesystem-safety.mdc minimal-diff.mdc model-routing.mdc groky-routing-template.mdc verification-before-done.mdc; do copy "$CURSOR_HOME/rules/$n" "cursor/rules/$n"; done
+for n in sol-planner.md luna-worker.md terra-implementer.md terra-reviewer.md composer-owner.md grok-reviewer.md grok-escalation.md opus-composer.md opus-reviewer.md opus-escalation.md; do copy "$CURSOR_HOME/agents/$n" "cursor/agents/$n"; done
+for n in core.mdc execution-safety.mdc one-line-commands.mdc token-efficiency.mdc git-filesystem-safety.mdc minimal-diff.mdc model-routing.mdc groky-routing-template.mdc opus-routing-template.mdc verification-before-done.mdc; do copy "$CURSOR_HOME/rules/$n" "cursor/rules/$n"; done
 copy "$CURSOR_HOME/hooks/cursor-st-command-guard.py" cursor/hooks/cursor-st-command-guard.py
 copy "$CURSOR_HOME/statusline.py" cursor/statusline.py
 copy "$HOME/.local/bin/cursor-st" bin/cursor-st
@@ -16,7 +16,7 @@ python3 - "$CURSOR_HOME/cli-config.json" "$STAGING/cursor/cli-config.json" <<'PY
 import json, sys
 src, dst = sys.argv[1:]
 data=json.load(open(src))
-allowed=('version','permissions','editor','display','notifications','hints','modelSlashCommands','rewind','exploreSubagentModel','autoAcceptWebSearch','network','attribution','statusLine','model','selectedModel','approvalMode','sandbox')
+allowed=('version','permissions','editor','display','notifications','hints','modelSlashCommands','rewind','exploreSubagentModel','subagentModels','autoAcceptWebSearch','network','attribution','statusLine','model','selectedModel','approvalMode','sandbox')
 out={k:data[k] for k in allowed if k in data}
 if 'statusLine' in out and isinstance(out['statusLine'],dict):
     out['statusLine']['command']='python3 __CURSOR_HOME__/statusline.py'

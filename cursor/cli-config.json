@@ -20,7 +20,22 @@
   "hints": true,
   "modelSlashCommands": true,
   "rewind": false,
-  "exploreSubagentModel": "gpt-5.6-sol-high[fast=false]",
+  "exploreSubagentModel": "default",
+  "subagentModels": {
+    "explore": {
+      "modelId": "gpt-5.6-sol",
+      "parameters": [
+        {
+          "id": "reasoning",
+          "value": "high"
+        },
+        {
+          "id": "fast",
+          "value": "false"
+        }
+      ]
+    }
+  },
   "autoAcceptWebSearch": false,
   "network": {
     "useHttp1ForAgent": false

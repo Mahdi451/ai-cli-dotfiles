@@ -1,0 +1,86 @@
+---
+alwaysApply: false
+---
+
+# Claude Opus 5.5 High + Composer 2.5 Routing
+
+`cursor-st --opus` renders a project-local copy with `alwaysApply: true`. That rendered copy is the active routing rule for `opus` / `opusn` sessions and overrides any other hierarchy rule in the session; the user-level template stays dormant.
+
+Claude Opus 5.5 High is the parent and primary task owner. Keep judgment, architecture, routing, risky or unsettled edits, integration, and signoff in the parent. Do not delegate merely because subagents exist.
+
+## Non-Fast invariant
+
+Every managed model in this hierarchy must run with `fast=false`.
+
+- Opus High parent: `claude-opus-5-5` with `context=300k`, `effort=high`, `fast=false` (launched as `claude-opus-5-5-high`).
+- `opus-composer`: `composer-2.5[fast=false]`.
+- `opus-reviewer`: `claude-opus-5-5-medium`.
+- `opus-escalation`: `claude-opus-5-5-xhigh`.
+- Explore subagent: `composer-2.5[fast=false]`.
+
+Do not switch Fast on to reduce latency. Do not use an unspecified custom-agent model when a pinned role exists. Prefer direct parent tool use or the pinned custom agents over built-in/automatic subagents whose speed variant cannot be verified.
+
+Do not use the Sol/Terra/Luna or Groky custom agents (`composer-owner`, `grok-reviewer`, `grok-escalation`) in Opus mode. Do not spawn a second Opus High agent; the parent already is Opus High.
+
+## Roles
+
+- Parent: Claude Opus 5.5 High, 300K context. Owns inspection, architecture, acceptance criteria, routing, debugging, integration, and final signoff. Implements small and medium local changes itself, and anything touching security, persistence, concurrency, public APIs, migrations, or an unsettled design.
+- `opus-composer`: Composer 2.5. Writes bulk work after the parent has decided the approach.
+- `opus-reviewer`: Opus 5.5 Medium, read-only. Fresh-context pass on risky Composer-written diffs. Not a stronger model than the parent.
+- `opus-escalation`: Opus 5.5 xHigh, read-only. Only after credible parent attempts leave material uncertainty.
+
+## Composer delegation gate
+
+Delegate to `opus-composer` only when the approach is already decided and at least one is true:
+
+- the change spans three or more files,
+- the work is repetitive or mechanical,
+- the work is mostly tests, fixtures, mocks, or boilerplate.
+
+Keep the work in the parent when it touches security boundaries, authentication, persistence, concurrency, public APIs, or migrations, or when the design is still open. Do not implement large mechanical diffs in the parent merely to avoid a handoff.
+
+## Routing
+
+### Routine
+
+Parent inspects -> parent implements, or `opus-composer` implements gated bulk work -> deterministic validation -> parent inspects diff -> done
+
+### Consequential review
+
+Composer wrote the change and it touches security, authentication, persistence, concurrency, public APIs, or migrations -> validate -> compact handoff -> `opus-reviewer` -> parent or Composer fixes valid findings -> validate -> done
+
+Small parent-written edits do not require `opus-reviewer`.
+
+### Stalled
+
+Parent makes credible focused debug/design attempts. Use `opus-escalation` only as the final reasoning escalation, then parent or Composer implements.
+
+## Compact handoff
+
+Before Composer, reviewer, or escalation delegation, provide only what the next agent needs:
+
+- objective
+- acceptance criteria
+- non-goals
+- relevant architecture
+- relevant or changed files
+- important decisions
+- validation already run and results
+- observed failure or uncertainty
+- current git diff when reviewing implementation
+
+The receiving agent should expand repository exploration only when a concrete concern requires it.
+
+## Token-efficiency and reliability
+
+1. Prefer deterministic tests/checks over extra model-review passes.
+2. Avoid duplicate repository exploration across parent and subagents.
+3. Use the parent's large context instead of Explore subagents when the relevant code fits.
+4. Prefer the pinned custom agents above over unspecified/built-in subagents.
+5. Do not run writing agents concurrently on overlapping files unless isolated worktrees are explicitly used.
+6. Re-review after fixes only when the fix is substantial, the reviewer requested it, or the area is high-risk.
+7. Keep changes minimal and avoid unrelated cleanup.
+
+## Completion
+
+Routine work may complete with the parent after relevant validation and diff inspection. Consequential work is complete after relevant deterministic validation and any required reviewer or escalation findings are handled. State remaining limitations honestly.

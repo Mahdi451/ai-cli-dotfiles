@@ -37,9 +37,12 @@ jobs:
           grep -Fq "alias cyolo='codex-st --dangerously-bypass-approvals-and-sandbox'" shell/ai-cli-aliases.sh
           grep -Fqx "alias groky='cursor-st --groky --yolo'" shell/ai-cli-aliases.sh
           grep -Fqx "alias groky-safe='cursor-st --groky'" shell/ai-cli-aliases.sh
+          grep -Fqx "alias opus='cursor-st --opus --yolo'" shell/ai-cli-aliases.sh
+          grep -Fqx "alias opusn='cursor-st --opus'" shell/ai-cli-aliases.sh
           grep -Fqx "alias cursory='cursor-st --yolo'" shell/ai-cli-aliases.sh
           grep -Fqx "alias cagent='cursor-st'" shell/ai-cli-aliases.sh
           grep -F "exec \"\$(find_agent_bin)\" --model 'grok-4.7-high'" bin/cursor-st
+          grep -F "exec \"\$(find_agent_bin)\" --model 'claude-opus-5-5-high'" bin/cursor-st
           grep -F "exec \"\$(find_agent_bin)\" --model 'gpt-5.6-sol-high[fast=false]'" bin/cursor-st
 
       - name: Whitespace check
