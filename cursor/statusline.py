@@ -4,6 +4,7 @@ import os
 import re
 import sys
 import unicodedata
+from decimal import Decimal, ROUND_HALF_UP
 
 RESET = "\033[0m"
 CYAN = "\033[36m"
@@ -72,6 +73,40 @@ def compact_path(path, level):
     return f"{prefix}…/{pieces[-1]}"
 
 
+def format_prompt_duration(duration_ms):
+    if not isinstance(duration_ms, (int, float)) or duration_ms < 0:
+        return ""
+    millis = Decimal(str(duration_ms))
+    if millis < 1000:
+        shown = int(millis.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+        if shown >= 1000:
+            return "⏱ 1.0s"
+        return f"⏱ {shown}ms"
+    seconds = millis / Decimal(1000)
+    if seconds < 60:
+        shown = seconds.quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
+        if shown < 60:
+            return f"⏱ {shown:.1f}s"
+        seconds = Decimal(60)
+    total = int(seconds.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+    hours, remainder = divmod(total, 3600)
+    minutes, secs = divmod(remainder, 60)
+    if hours:
+        return f"⏱ {hours}h {minutes:02d}m {secs:02d}s"
+    return f"⏱ {minutes}m {secs:02d}s"
+
+
+def previous_prompt_duration():
+    cursor_home = os.environ.get("CURSOR_HOME", os.path.expanduser("~/.cursor"))
+    path = os.path.join(cursor_home, "prompt-timing.json")
+    try:
+        with open(path, encoding="utf-8") as handle:
+            data = json.load(handle)
+        return format_prompt_duration((data or {}).get("last_ms"))
+    except (OSError, json.JSONDecodeError, TypeError, ValueError):
+        return ""
+
+
 def access_label():
     cursor_home = os.environ.get("CURSOR_HOME", os.path.expanduser("~/.cursor"))
     config_path = os.path.join(cursor_home, "cli-config.json")
@@ -112,6 +147,7 @@ context = data.get("context_window") or {}
 used = context.get("used_percentage")
 percent = float(used) if used is not None else None
 access = access_label()
+duration = previous_prompt_duration()
 width = max(1, int(data.get("render_width_chars") or 80))
 separator = f" {DIM}·{RESET} "
 
@@ -121,11 +157,14 @@ def make_line(
     compact=False,
     include_access=True,
     include_model=True,
+    include_duration=True,
     model_value=None,
 ):
     parts = []
     if include_model:
         parts.append(f"{CYAN}{model if model_value is None else model_value}{RESET}")
+    if include_duration and duration:
+        parts.append(f"{DIM}{duration}{RESET}")
     if path_value:
         parts.append(f"{DIM}{path_value}{RESET}")
     if percent is not None:
@@ -179,6 +218,8 @@ if visible_length(line) > width:
         )
     else:
         line = context_line
+if visible_length(line) > width:
+    line = make_line("", compact=True, include_access=False, include_duration=False)
 if visible_length(line) > width:
     line = f"{CYAN}{truncate_text(model, width)}{RESET}"
 

@@ -73,7 +73,7 @@ run "$third" "$ROOT/install.sh" --symlink --full-access
 [[ -L "$third/.local/bin/cursor-st" && -L "$third/.codex/agents/sol-planner.toml" ]]
 run "$third" "$third/.local/bin/cursor-st" --groky --show-flow > "$TEST_ROOT/groky-flow.txt"
 rg -Fq "Grok High parent:" "$TEST_ROOT/groky-flow.txt"
-rg -Fq "grok-4.6[effort=high,fast=false]" "$TEST_ROOT/groky-flow.txt"
+rg -Fq "grok-4.7-high" "$TEST_ROOT/groky-flow.txt"
 ! rg -Fq "Grok advisor:" "$TEST_ROOT/groky-flow.txt"
 run "$third" "$third/.local/bin/cursor-st" --groky --doctor >/dev/null
 groky_repo="$(mktemp -d "$TEST_ROOT/groky-repo.XXXXXX")"
@@ -89,7 +89,7 @@ alwaysApply: true
 This rule is a dormant template in the user rules directory. `cursor-st --groky` renders a project-local copy with `alwaysApply: true`. Do not apply this template in ordinary `cursor-st` sessions.
 EOF
 run "$third" env --chdir="$groky_repo" "$third/.local/bin/cursor-st" --groky --setup-only >/dev/null
-rg -Fq "Grok 4.6 High is the parent" "$groky_repo/.cursor/rules/global-groky-routing.mdc"
+rg -Fq "Grok 4.7 High is the parent" "$groky_repo/.cursor/rules/global-groky-routing.mdc"
 printf '%s\n' unrelated-project-rule > "$groky_repo/.cursor/rules/global-groky-routing.mdc"
 if run "$third" env --chdir="$groky_repo" "$third/.local/bin/cursor-st" --groky --setup-only >/dev/null 2>&1; then exit 1; fi
 cat > "$groky_repo/.cursor/rules/global-groky-routing.mdc" <<'EOF'
@@ -130,7 +130,7 @@ for forbidden in ('displayModelId','displayName','aliases','maxMode','272k','mod
 PY
 for rule in core execution-safety one-line-commands token-efficiency git-filesystem-safety minimal-diff model-routing verification-before-done; do [[ -f "$ROOT/cursor/rules/$rule.mdc" ]]; done
 [[ -f "$ROOT/cursor/agents/composer-owner.md" && -f "$ROOT/shell/ai-cli-aliases.sh" ]]
-grep -Fq "exec \"\$(find_agent_bin)\" --model 'grok-4.6[effort=high,fast=false]'" "$ROOT/bin/cursor-st"
+grep -Fq "exec \"\$(find_agent_bin)\" --model 'grok-4.7-high'" "$ROOT/bin/cursor-st"
 grep -Fq "exec \"\$(find_agent_bin)\" --model 'gpt-5.6-sol-high[fast=false]'" "$ROOT/bin/cursor-st"
 run "$third" "$ROOT/uninstall.sh" --restore --force
 [[ ! -e "$third/.local/bin/cursor-st" ]]

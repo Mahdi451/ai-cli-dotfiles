@@ -5,6 +5,16 @@
       {
         "command": "python3 __CURSOR_HOME__/hooks/cursor-st-command-guard.py"
       }
+    ],
+    "beforeSubmitPrompt": [
+      {
+        "command": "python3 __CURSOR_HOME__/hooks/prompt-timing.py"
+      }
+    ],
+    "stop": [
+      {
+        "command": "python3 __CURSOR_HOME__/hooks/prompt-timing.py"
+      }
     ]
   }
 }

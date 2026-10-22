@@ -9,7 +9,7 @@ Portable Linux/WSL configuration for opinionated Cursor and Codex CLI workflows:
 | Workflow | Primary command | Normal/safe command | Default owner | Senior reasoning | Use case |
 | --- | --- | --- | --- | --- | --- |
 | **GPT Hierarchy v2** | `cyolo` | `codex-st` | Terra Medium | Sol High / Sol Max | Home Codex workflow |
-| **Groky** | `groky` | `groky-safe` | Grok 4.6 High | Composer 2.5 / Grok xHigh | Grok-led Cursor workflow |
+| **Groky** | `groky` | `groky-safe` | Grok 4.7 High | Composer 2.5 / Grok xHigh | Grok-led Cursor workflow |
 | **Original Cursor** | `cursory` | `cagent` | Sol High | Sol Max | Legacy Sol/Terra/Luna Cursor workflow |
 
 ### Launcher map
@@ -170,19 +170,19 @@ See [`codex/HIERARCHY.md`](codex/HIERARCHY.md) and [`codex/prompts/terra-led-wor
 
 ---
 
-# Groky — Grok 4.6 High + Composer 2.5 Cursor workflow
+# Groky — Grok 4.7 High + Composer 2.5 Cursor workflow
 
-Groky is the Grok-led work hierarchy: Grok 4.6 High owns inspection, architecture, routing, small local edits, and signoff; Composer 2.5 implements bulk work; Grok High review and xHigh escalation remain conditional.
+Groky is the Grok-led work hierarchy: Grok 4.7 High owns inspection, architecture, routing, small local edits, and signoff; Composer 2.5 implements bulk work; Grok High review and xHigh escalation remain conditional.
 
 ### Architecture
 
 ```mermaid
 flowchart TD
-    G[Grok 4.6 High<br/>Parent<br/>fast=false]
+    G[Grok 4.7 High<br/>Parent<br/>fast=false]
     C[Composer 2.5<br/>Implementer<br/>fast=false]
     V[Tests / Typecheck / Lint / Build<br/>Deterministic Validation]
-    GH[Grok 4.6 High<br/>Fresh-context Reviewer<br/>fast=false]
-    GX[Grok 4.6 xHigh<br/>Exceptional Escalation<br/>fast=false]
+    GH[Grok 4.7 High<br/>Fresh-context Reviewer<br/>fast=false]
+    GX[Grok 4.7 xHigh<br/>Exceptional Escalation<br/>fast=false]
     FIX[Parent or Composer<br/>Fix Findings]
     DONE([Done])
 
@@ -238,13 +238,13 @@ Every managed Cursor model is explicitly non-Fast.
 
 | Role | Model |
 | --- | --- |
-| Grok High parent | `grok-4.6` + `effort=high` + `fast=false` |
+| Grok High parent | `grok-4.7-high` |
 | Composer implementer | `composer-2.5[fast=false]` |
-| Grok reviewer | `grok-4.6[effort=high,fast=false]` |
-| Grok escalation | `grok-4.6[effort=xhigh,fast=false]` |
+| Grok reviewer | `grok-4.7-high` |
+| Grok escalation | `grok-4.7-xhigh` |
 | Explore | `composer-2.5[fast=false]` |
 
-`cursor-st --groky` launches with `--model grok-4.6[effort=high,fast=false]` so the CLI cannot fall back to Auto / Auto Balance. It also rewrites the selected Grok parent to High with `fast=false` in `cli-config.json` before startup and keeps Explore on non-Fast Composer. Custom agents carry independent `fast=false` pins, and the doctor rejects a managed custom agent that lacks an explicit pin. Built-in/automatic subagents are not part of the managed Groky path when their speed variant cannot be verified.
+`cursor-st --groky` launches with `--model grok-4.7-high` so the CLI cannot fall back to Auto / Auto Balance. Grok 4.7 is catalogued as discrete effort and speed slugs (`grok-4.7-high`, `grok-4.7-high-fast`, `grok-4.7-xhigh`); the managed path uses the non-Fast IDs. It also rewrites the selected parent to `grok-4.7-high` in `cli-config.json` before startup and keeps Explore on non-Fast Composer. Composer stays on `composer-2.5[fast=false]`, and the doctor rejects a Fast Grok slug or a Composer pin that lacks `fast=false`. Built-in/automatic subagents are not part of the managed Groky path when their speed variant cannot be verified.
 
 Install removes leftover `grok-advisor` and `grok-architect` files. On launch, Groky replaces stale generated project copies of `global-groky-routing.mdc` from older templates instead of refusing to start.
 

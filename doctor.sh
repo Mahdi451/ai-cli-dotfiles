@@ -18,7 +18,7 @@ check "Cursor JSON" python3 "$ROOT/lib/manage.py" json-validate "$ROOT/cursor/ho
 check "Cursor preferences JSON" python3 "$ROOT/lib/manage.py" json-validate "$ROOT/cursor/cli-config.json"
 for f in "$ROOT"/codex/config/*.toml "$ROOT"/codex/agents/*.toml; do check "TOML $(basename "$f")" python3 "$ROOT/lib/manage.py" toml-validate "$f"; done
 cache="$(mktemp -d)"; trap 'rm -rf -- "$cache"' EXIT
-check "Python compile" env PYTHONPYCACHEPREFIX="$cache" python3 -m py_compile "$ROOT/lib/manage.py" "$ROOT/lib/state.py" "$ROOT/cursor/statusline.py" "$ROOT/cursor/hooks/cursor-st-command-guard.py"
+check "Python compile" env PYTHONPYCACHEPREFIX="$cache" python3 -m py_compile "$ROOT/lib/manage.py" "$ROOT/lib/state.py" "$ROOT/cursor/statusline.py" "$ROOT/cursor/hooks/cursor-st-command-guard.py" "$ROOT/cursor/hooks/prompt-timing.py"
 check "repository scanner" python3 "$ROOT/lib/manage.py" scan "$ROOT"
 if [[ "$REPO_ONLY" == false ]]; then
   manifest="$(manifest_path)" registry="$(source_registry_path)"

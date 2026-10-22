@@ -42,6 +42,7 @@ if [[ "$INSTALL_CURSOR" == true ]]; then
     [[ "$DRY_RUN" == true ]] || rm -f -- "$target"
   done
   install_asset "$ROOT/cursor/hooks/cursor-st-command-guard.py" "$CURSOR_HOME/hooks/cursor-st-command-guard.py"
+  install_asset "$ROOT/cursor/hooks/prompt-timing.py" "$CURSOR_HOME/hooks/prompt-timing.py"
   install_asset "$ROOT/cursor/statusline.py" "$CURSOR_HOME/statusline.py"
   install_asset "$ROOT/bin/cursor-st" "$HOME/.local/bin/cursor-st"
   backup_existing "$CURSOR_HOME/hooks.json" "$BACKUP_DIR"
@@ -79,7 +80,7 @@ if [[ "$DRY_RUN" == false ]]; then
   records="$(mktemp)"
   record() { local s="$1" t="$2" mode=copy; [[ -L "$t" ]] && mode=symlink; printf '%s\t%s\t%s\n' "$mode" "${s#"$ROOT/"}" "$t" >> "$records"; }
   record "$ROOT/shell/ai-cli-aliases.sh" "$(config_root)/ai-cli-aliases.sh"
-  [[ "$INSTALL_CURSOR" == true ]] && { record "$ROOT/bin/cursor-st" "$HOME/.local/bin/cursor-st"; record "$ROOT/cursor/hooks.json" "$CURSOR_HOME/hooks.json"; record "$ROOT/cursor/hooks/cursor-st-command-guard.py" "$CURSOR_HOME/hooks/cursor-st-command-guard.py"; record "$ROOT/cursor/statusline.py" "$CURSOR_HOME/statusline.py"; record "$ROOT/cursor/cli-config.json" "$CURSOR_HOME/cli-config.json"; for s in "$ROOT"/cursor/agents/*.md "$ROOT"/cursor/rules/*.mdc; do record "$s" "$CURSOR_HOME/${s#"$ROOT/cursor/"}"; done; }
+  [[ "$INSTALL_CURSOR" == true ]] && { record "$ROOT/bin/cursor-st" "$HOME/.local/bin/cursor-st"; record "$ROOT/cursor/hooks.json" "$CURSOR_HOME/hooks.json"; record "$ROOT/cursor/hooks/cursor-st-command-guard.py" "$CURSOR_HOME/hooks/cursor-st-command-guard.py"; record "$ROOT/cursor/hooks/prompt-timing.py" "$CURSOR_HOME/hooks/prompt-timing.py"; record "$ROOT/cursor/statusline.py" "$CURSOR_HOME/statusline.py"; record "$ROOT/cursor/cli-config.json" "$CURSOR_HOME/cli-config.json"; for s in "$ROOT"/cursor/agents/*.md "$ROOT"/cursor/rules/*.mdc; do record "$s" "$CURSOR_HOME/${s#"$ROOT/cursor/"}"; done; }
   [[ "$INSTALL_CODEX" == true ]] && { record "$ROOT/bin/codex-st" "$HOME/.local/bin/codex-st"; record "$ROOT/codex/AGENTS.md" "$CODEX_HOME/AGENTS.md"; record "$ROOT/codex/rules/default.rules" "$CODEX_HOME/rules/default.rules"; record "$ROOT/codex/config/sol-terra-luna.config.toml" "$CODEX_HOME/sol-terra-luna.config.toml"; [[ "$CONFIG_MANAGED" == true ]] && record "$ROOT/codex/config/config.toml" "$CODEX_HOME/config.toml"; for s in "$ROOT"/codex/agents/*.toml; do record "$s" "$CODEX_HOME/agents/$(basename "$s")"; done; }
   publish=(publish --records "$records")
   [[ "$INSTALL_CURSOR" == false ]] && publish+=(--retain-cursor)

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-WORKFLOW_VERSION='6.2.1'
+WORKFLOW_VERSION='6.3.1'
 MODE='sol'
 if [[ "${1:-}" == --groky ]]; then
   MODE='groky'
@@ -10,7 +10,7 @@ fi
 
 CURSOR_HOME="${CURSOR_HOME:-$HOME/.cursor}"
 SOL_PARENT_DISPLAY='gpt-5.6-sol high [fast=false]'
-GROKY_PARENT_DISPLAY='grok-4.6 high [fast=false]'
+GROKY_PARENT_DISPLAY='grok-4.7-high'
 
 find_agent_bin() {
   if command -v agent >/dev/null 2>&1; then
@@ -243,7 +243,11 @@ assert_custom_agents_nonfast() {
   if [[ "$MODE" == groky ]]; then
     for source in "${GROKY_SOURCES[@]}"; do
       [[ "$source" == *.md ]] || continue
-      grep -Eq '^model: .*\[.*fast=false.*\]$' "$source" || { printf 'Missing explicit fast=false model pin: %s\n' "$source" >&2; failures=$((failures + 1)); }
+      if [[ "$(basename -- "$source")" == composer-owner.md ]]; then
+        grep -Eq '^model: composer-2\.5\[fast=false\]$' "$source" || { printf 'Missing explicit fast=false model pin: %s\n' "$source" >&2; failures=$((failures + 1)); }
+      else
+        grep -Eq '^model: grok-4\.7-(high|xhigh)$' "$source" || { printf 'Missing discrete non-Fast Grok 4.7 pin: %s\n' "$source" >&2; failures=$((failures + 1)); }
+      fi
     done
   else
     for source in "$CURSOR_HOME/agents/sol-planner.md" "$CURSOR_HOME/agents/luna-worker.md" "$CURSOR_HOME/agents/terra-implementer.md" "$CURSOR_HOME/agents/terra-reviewer.md"; do
@@ -267,8 +271,8 @@ except (OSError, json.JSONDecodeError) as exc:
 if not isinstance(data, dict):
     raise SystemExit("cannot enforce non-Fast Cursor parent: config root must be an object")
 if mode == "groky":
-    model_id = "grok-4.6"
-    parameters = [{"id": "effort", "value": "high"}, {"id": "fast", "value": "false"}]
+    model_id = "grok-4.7-high"
+    parameters = []
     explore = "composer-2.5[fast=false]"
 else:
     model_id = "gpt-5.6-sol"
@@ -302,8 +306,8 @@ Workflow version:   $WORKFLOW_VERSION
 Mode:               Grok High + Composer (Groky)
 Grok High parent:   $GROKY_PARENT_DISPLAY
 Composer implementer: composer-2.5 [fast=false]
-Grok reviewer:      grok-4.6 high [fast=false], read-only fresh-context review
-Grok escalation:    grok-4.6 xhigh [fast=false], read-only
+Grok reviewer:      grok-4.7-high, read-only fresh-context review
+Grok escalation:    grok-4.7-xhigh, read-only
 Explore:            composer-2.5 [fast=false]
 
 Default:
@@ -318,7 +322,7 @@ Exceptional:
 
 Fast policy:
   Every managed model is pinned to fast=false. The launcher passes --model
-  grok-4.6[effort=high,fast=false] so the CLI cannot fall back to Auto / Auto Balance.
+  grok-4.7-high so the CLI cannot fall back to Auto / Auto Balance.
   It also rewrites selected parent/explore fields to non-Fast before launch.
   Advisor and architect roles are folded into the Grok High parent.
 EOF
@@ -355,7 +359,7 @@ doctor() {
     models="$($path models 2>/dev/null || true)"
     if [[ -n "$models" ]]; then
       grep -Fq 'composer-2.5' <<<"$models" || { printf 'Composer 2.5 not found in local Cursor model catalog.\n' >&2; failures=$((failures + 1)); }
-      grep -Fq 'grok-4.6' <<<"$models" || { printf 'Grok 4.6 not found in local Cursor model catalog.\n' >&2; failures=$((failures + 1)); }
+      grep -Fq 'grok-4.7-high' <<<"$models" || { printf 'Grok 4.7 High not found in local Cursor model catalog.\n' >&2; failures=$((failures + 1)); }
     else
       printf 'Warning: unable to inspect local model catalog; verify with `agent models`.\n' >&2
     fi
@@ -395,6 +399,6 @@ assert_custom_agents_nonfast
 select_parent_nonfast
 cd -- "$ROOT"
 if [[ "$MODE" == groky ]]; then
-  exec "$(find_agent_bin)" --model 'grok-4.6[effort=high,fast=false]' "$@"
+  exec "$(find_agent_bin)" --model 'grok-4.7-high' "$@"
 fi
 exec "$(find_agent_bin)" --model 'gpt-5.6-sol-high[fast=false]' "$@"

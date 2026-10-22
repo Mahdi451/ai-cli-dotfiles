@@ -1,4 +1,4 @@
-# Groky — Grok 4.6 High + Composer 2.5 Execution Prompt
+# Groky — Grok 4.7 High + Composer 2.5 Execution Prompt
 
 Use the active Groky Cursor hierarchy for this task.
 
@@ -14,16 +14,16 @@ Use the active Groky Cursor hierarchy for this task.
 
 Fast mode is always off. Do not enable Fast for any managed model or subagent.
 
-- Grok High parent: `grok-4.6[effort=high,fast=false]`, launcher-enforced.
+- Grok High parent: `grok-4.7-high`, launcher-enforced.
 - Composer implementer: `composer-2.5[fast=false]`.
-- Grok High reviewer: `grok-4.6[effort=high,fast=false]`, fresh-context only.
-- Grok xHigh escalation: `grok-4.6[effort=xhigh,fast=false]`.
+- Grok High reviewer: `grok-4.7-high`, fresh-context only.
+- Grok xHigh escalation: `grok-4.7-xhigh`.
 
 Prefer direct parent tools or the pinned custom agents over unspecified/built-in subagents whose speed variant cannot be verified. Do not invoke `grok-advisor` or `grok-architect`; those roles are folded into the parent.
 
 ## Execution policy
 
-Grok 4.6 High owns the task. Inspect relevant code, define lightweight acceptance criteria, and either implement a small local change or delegate bulk/mechanical/multi-file work to `composer-owner`. Run deterministic validation, inspect the final diff, fix issues, and finish without calling `grok-reviewer` merely to satisfy process.
+Grok 4.7 High owns the task. Inspect relevant code, define lightweight acceptance criteria, and either implement a small local change or delegate bulk/mechanical/multi-file work to `composer-owner`. Run deterministic validation, inspect the final diff, fix issues, and finish without calling `grok-reviewer` merely to satisfy process.
 
 Use `grok-reviewer` after deterministic validation only for important or high-risk changes where a fresh-context High pass materially improves confidence. Give it a compact handoff containing objective, acceptance criteria, relevant architecture, changed files, important decisions, checks already run, known uncertainty, and the git diff.
 

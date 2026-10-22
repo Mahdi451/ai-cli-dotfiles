@@ -5,7 +5,7 @@ alias cagent='cursor-st'
 alias cursory='cursor-st --yolo'
 alias cdoctor='cursor-st --doctor'
 
-# Composer 2.5 + Grok 4.6 Cursor hierarchy. Fast is enforced off by cursor-st.
+# Composer 2.5 + Grok 4.7 Cursor hierarchy. Fast is enforced off by cursor-st.
 alias groky='cursor-st --groky --yolo'
 alias groky-safe='cursor-st --groky'
 

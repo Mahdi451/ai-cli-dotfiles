@@ -129,6 +129,7 @@ def active_assets(args: argparse.Namespace) -> dict[str, str]:
         "shell/ai-cli-aliases.sh": f"{config}/ai-cli-aliases.sh",
         "cursor/hooks.json": f"{cursor}/hooks.json",
         "cursor/hooks/cursor-st-command-guard.py": f"{cursor}/hooks/cursor-st-command-guard.py",
+        "cursor/hooks/prompt-timing.py": f"{cursor}/hooks/prompt-timing.py",
         "cursor/statusline.py": f"{cursor}/statusline.py",
         "cursor/cli-config.json": f"{cursor}/cli-config.json",
         "bin/codex-st": f"{home}/.local/bin/codex-st",

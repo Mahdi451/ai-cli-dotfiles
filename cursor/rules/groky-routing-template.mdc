@@ -2,20 +2,20 @@
 alwaysApply: false
 ---
 
-# Grok 4.6 High + Composer 2.5 Routing Template
+# Grok 4.7 High + Composer 2.5 Routing Template
 
 This rule is a dormant template in the user rules directory. `cursor-st --groky` renders a project-local copy with `alwaysApply: true`. Do not apply this template in ordinary `cursor-st` sessions.
 
-When active, Grok 4.6 High is the parent and primary task owner. Keep judgment, architecture, routing, small local edits, integration, and signoff in the parent. Do not delegate merely because subagents exist.
+When active, Grok 4.7 High is the parent and primary task owner. Keep judgment, architecture, routing, small local edits, integration, and signoff in the parent. Do not delegate merely because subagents exist.
 
 ## Non-Fast invariant
 
 Every managed model in this hierarchy must run with `fast=false`.
 
-- Grok High parent: `grok-4.6`, with the launcher forcing selected-model `effort=high` and `fast=false` immediately before startup.
+- Grok High parent: `grok-4.7-high`, the discrete non-Fast High catalog slug.
 - `composer-owner`: `composer-2.5[fast=false]`.
-- `grok-reviewer`: `grok-4.6[effort=high,fast=false]`.
-- `grok-escalation`: `grok-4.6[effort=xhigh,fast=false]`.
+- `grok-reviewer`: `grok-4.7-high`.
+- `grok-escalation`: `grok-4.7-xhigh`.
 
 Do not switch Fast on to reduce latency. Do not use an unspecified custom-agent model when a pinned role exists. Prefer direct parent tool use or the pinned custom agents over built-in/automatic subagents whose speed variant cannot be verified.
 
@@ -29,10 +29,10 @@ Routine work does not require `grok-reviewer` or `grok-escalation`.
 
 ## Roles
 
-- Parent: Grok 4.6 High. Owns inspection, architecture, acceptance criteria, routing, debugging, small local implementation, integration, and final signoff.
+- Parent: Grok 4.7 High. Owns inspection, architecture, acceptance criteria, routing, debugging, small local implementation, integration, and final signoff.
 - `composer-owner`: Composer 2.5. Use for bulk, mechanical, multi-file, fixture/boilerplate, or test-writing implementation after the parent has defined the approach. Do not use this role merely to duplicate the parent context.
-- `grok-reviewer`: Grok 4.6 High, read-only. Use after deterministic validation for important/high-risk integrated changes. This is a fresh-context pass, not a stronger model than the parent.
-- `grok-escalation`: Grok 4.6 xHigh, read-only. Use only after credible Grok High parent attempts leave material uncertainty.
+- `grok-reviewer`: Grok 4.7 High, read-only. Use after deterministic validation for important/high-risk integrated changes. This is a fresh-context pass, not a stronger model than the parent.
+- `grok-escalation`: Grok 4.7 xHigh, read-only. Use only after credible Grok High parent attempts leave material uncertainty.
 
 The parent may implement small local changes itself. Delegate to `composer-owner` when the work is large, mechanical, repetitive, multi-file, or mostly boilerplate. Do not implement large diffs in the parent merely to avoid a handoff.
 
