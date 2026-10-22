@@ -12,6 +12,7 @@ groky "implement the reviewed change and validate it"
 - `groky-safe` expands to `cursor-st --groky` and uses normal Cursor approval behavior.
 - `groky` expands to `cursor-st --groky --yolo` and uses the same hierarchy with full-autonomy behavior.
 - `cagent` / `cursory` are reserved for the original Sol/Terra/Luna Cursor hierarchy.
+- `opus` / `opusn` are reserved for the Opus 5.5 High + Composer hierarchy (see [`OPUS.md`](OPUS.md)).
 - `cyolo` is reserved for the home GPT/Codex hierarchy and must not be reused by Cursor.
 
 ## Routing
@@ -47,17 +48,17 @@ grok-escalation        grok-4.7-xhigh
 Explore                composer-2.5[fast=false]
 ```
 
-`cursor-st --groky` launches the Cursor CLI with `--model grok-4.7-high`. That argv pin is required: without it the CLI defaults to `auto` / Auto Balance. Grok 4.7 is catalogued as discrete effort and speed slugs, so non-Fast High is `grok-4.7-high` rather than a parameterized `grok-4.7[...]` override. The launcher also rewrites `cli-config.json` to `grok-4.7-high`, keeps Explore on non-Fast Composer, and rejects caller `--model`/`-m` overrides. Composer stays on `composer-2.5[fast=false]`. `cursor-st --groky --doctor` rejects a Fast Grok slug or a Composer pin that lacks `fast=false`.
+`cursor-st --groky` launches the Cursor CLI with `--model grok-4.7-high`. That argv pin is required: without it the CLI defaults to `auto` / Auto Balance. Grok 4.7 is catalogued as discrete effort and speed slugs, so non-Fast High is `grok-4.7-high` rather than a parameterized `grok-4.7[...]` override. The launcher also rewrites `cli-config.json` to `grok-4.7-high`, keeps Explore on non-Fast Composer through `subagentModels.explore` (the CLI only accepts `default` / `inherit` in `exploreSubagentModel`), and rejects caller `--model`/`-m` overrides. Composer stays on `composer-2.5[fast=false]`. `cursor-st --groky --doctor` rejects a Fast Grok slug or a Composer pin that lacks `fast=false`.
 
 Because Cursor has had known issues around automatic/built-in subagent model variants, those are not part of the Groky hierarchy. Prefer direct parent tools or the pinned custom agents when model speed must be deterministic.
 
 ## Workflow isolation
 
-The repository installs `groky-routing-template.mdc` as a dormant user rule with `alwaysApply: false`. When `cursor-st --groky` starts inside a project, it renders a managed project-local copy with `alwaysApply: true`, links the Composer implementer and Grok reviewer/escalation agents, removes retired advisor/architect project links, and removes matching Sol/Terra/Luna project links. Stale generated copies from an older Groky template are replaced. Those generated project files are excluded through `.git/info/exclude`.
+The repository installs `groky-routing-template.mdc` as a dormant user rule with `alwaysApply: false`. When `cursor-st --groky` starts inside a project, it renders a managed project-local copy with `alwaysApply: true`, links the Composer implementer and Grok reviewer/escalation agents, removes retired advisor/architect project links, and removes the matching Sol/Terra/Luna and Opus project agents and rendered rules. Stale generated copies from an older Groky template are replaced. Those generated project files are excluded through `.git/info/exclude`.
 
-When normal `cursor-st` starts again, it removes the matching Groky project files before restoring the Sol/Terra/Luna project links. The user-level Grok agent definitions remain installed, but their descriptions and both routing rules explicitly restrict them to Groky sessions.
+When normal `cursor-st` or `cursor-st --opus` starts again, it removes the matching Groky project files before setting up its own agents and rendered routing rule. The Sol routing rule (`model-routing.mdc`) is also a dormant user-level template, so only one hierarchy rule is active per session. The user-level Grok agent definitions remain installed, but their descriptions and the routing rules explicitly restrict them to Groky sessions.
 
-`cursor-st --clean-project` removes matching managed files for both Cursor hierarchies.
+`cursor-st --clean-project` removes matching managed files for all three Cursor hierarchies.
 
 ## Verification
 

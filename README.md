@@ -21,8 +21,10 @@ flowchart LR
 
     U -->|Home GPT| CYOLO[cyolo]
     U -->|Home GPT, normal approvals| CST[codex-st]
-    U -->|Work Cursor, autonomous| GROKY[groky]
-    U -->|Work Cursor, normal approvals| GSAFE[groky-safe]
+    U -->|Work Cursor Grok, autonomous| GROKY[groky]
+    U -->|Work Cursor Grok, normal approvals| GSAFE[groky-safe]
+    U -->|Work Cursor Opus, autonomous| OPUS[opus]
+    U -->|Work Cursor Opus, normal approvals| OPUSN[opusn]
     U -->|Original Cursor, autonomous| CURSORY[cursory]
     U -->|Original Cursor, normal approvals| CAGENT[cagent]
 
@@ -30,16 +32,20 @@ flowchart LR
     CST --> CODEX
     GROKY --> CG[Grok + Composer]
     GSAFE --> CG
+    OPUS --> OC[Opus + Composer]
+    OPUSN --> OC
     CURSORY --> STL[Sol / Terra / Luna]
     CAGENT --> STL
 
     classDef user fill:#111827,stroke:#64748b,color:#f8fafc,stroke-width:2px;
     classDef gpt fill:#172554,stroke:#60a5fa,color:#eff6ff,stroke-width:2px;
     classDef grok fill:#052e16,stroke:#4ade80,color:#f0fdf4,stroke-width:2px;
+    classDef opus fill:#4a044e,stroke:#f0abfc,color:#fdf4ff,stroke-width:2px;
     classDef cursor fill:#3f1d0b,stroke:#fb923c,color:#fff7ed,stroke-width:2px;
     class U user;
     class CYOLO,CST,CODEX gpt;
     class GROKY,GSAFE,CG grok;
+    class OPUS,OPUSN,OC opus;
     class CURSORY,CAGENT,STL cursor;
 ```
 
@@ -56,10 +62,14 @@ flowchart TD
     GPTRISK -->|No| CST[codex-st]
 
     CURSORSTYLE -->|Grok High + Composer| GROKAPP{Approval mode?}
+    CURSORSTYLE -->|Opus High + Composer| OPUSAPP{Approval mode?}
     CURSORSTYLE -->|Original Sol / Terra / Luna| OLDAPP{Approval mode?}
 
     GROKAPP -->|Normal| GSAFE[groky-safe]
     GROKAPP -->|Autonomous| GROKY[groky]
+
+    OPUSAPP -->|Normal| OPUSN[opusn]
+    OPUSAPP -->|Autonomous| OPUS[opus]
 
     OLDAPP -->|Normal| CAGENT[cagent]
     OLDAPP -->|Autonomous| CURSORY[cursory]
@@ -67,9 +77,9 @@ flowchart TD
     classDef decision fill:#0f172a,stroke:#94a3b8,color:#f8fafc;
     classDef safe fill:#0c4a6e,stroke:#38bdf8,color:#f0f9ff;
     classDef auto fill:#3f1d0b,stroke:#fb923c,color:#fff7ed;
-    class WHERE,GPTRISK,CURSORSTYLE,GROKAPP,OLDAPP decision;
-    class CST,GSAFE,CAGENT safe;
-    class CYOLO,GROKY,CURSORY auto;
+    class WHERE,GPTRISK,CURSORSTYLE,GROKAPP,OPUSAPP,OLDAPP decision;
+    class CST,GSAFE,OPUSN,CAGENT safe;
+    class CYOLO,GROKY,OPUS,CURSORY auto;
 ```
 
 ---
@@ -267,6 +277,45 @@ See [`cursor/GROKY.md`](cursor/GROKY.md) and [`cursor/prompts/groky-workflow.md`
 
 Opus is the Opus-led work hierarchy: Claude Opus 5.5 High (300K context) owns inspection, architecture, routing, risky or unsettled edits, and signoff; Composer 2.5 writes gated bulk work; Opus review and xHigh escalation remain conditional.
 
+### Architecture
+
+```mermaid
+flowchart TD
+    O[Claude Opus 5.5 High<br/>Parent<br/>300K, fast=false]
+    C[Composer 2.5<br/>Gated Bulk Implementer<br/>fast=false]
+    V[Tests / Typecheck / Lint / Build<br/>Deterministic Validation]
+    OR[Claude Opus 5.5 Medium<br/>Fresh-context Reviewer]
+    OX[Claude Opus 5.5 xHigh<br/>Exceptional Escalation]
+    FIX[Parent or Composer<br/>Fix Findings]
+    DONE([Done])
+
+    O -->|Local, risky, or unsettled change| V
+    O -->|Approach decided + 3+ files / repetitive / tests| C
+    C --> V
+    V -->|Routine + passing| DONE
+
+    V -->|Composer change touching security / auth /<br/>persistence / concurrency / API / migrations| OR
+    OR -->|No material findings| DONE
+    OR -->|Actionable findings| FIX
+    FIX --> V
+
+    O -->|Still materially uncertain| OX
+    OX -->|Diagnosis / recommendation| O
+
+    classDef owner fill:#4a044e,stroke:#f0abfc,color:#fdf4ff,stroke-width:2px;
+    classDef hands fill:#164e63,stroke:#22d3ee,color:#ecfeff;
+    classDef senior fill:#3b0764,stroke:#c084fc,color:#faf5ff,stroke-width:2px;
+    classDef verify fill:#1f2937,stroke:#94a3b8,color:#f8fafc;
+    classDef done fill:#172554,stroke:#60a5fa,color:#eff6ff,stroke-width:2px;
+    class O owner;
+    class C,FIX hands;
+    class OR,OX senior;
+    class V verify;
+    class DONE done;
+```
+
+### Routing contract
+
 ```text
 Routine:
   Opus High parent implements, or delegates gated bulk work to Composer
@@ -282,6 +331,12 @@ Stalled:
   Opus xHigh only after credible Opus High parent attempts
 ```
 
+Small parent-written edits do not require the reviewer. Security, auth, persistence, concurrency, public API, migration, and unsettled design work stays with the parent.
+
+### Fast mode policy: always off
+
+Every managed Cursor model is explicitly non-Fast.
+
 | Role | Model |
 | --- | --- |
 | Opus High parent | `claude-opus-5-5-high` (config: `claude-opus-5-5`, `context=300k`, `effort=high`, `fast=false`) |
@@ -290,14 +345,35 @@ Stalled:
 | `opus-escalation` | `claude-opus-5-5-xhigh` |
 | Explore | `composer-2.5[fast=false]` |
 
-`cursor-st --opus` launches with `--model claude-opus-5-5-high`, rewrites the selected parent and `subagentModels.explore` in `cli-config.json` before startup (current CLIs accept only `default`/`inherit` in `exploreSubagentModel`, so every mode pins Explore through `subagentModels.explore`), and renders `global-opus-routing.mdc` into the project. The doctor rejects Fast Opus slugs and Composer pins without `fast=false`.
+`cursor-st --opus` launches with `--model claude-opus-5-5-high` so the CLI cannot fall back to Auto / Auto Balance. Opus 5.5 is catalogued as discrete effort and speed slugs (`claude-opus-5-5-high`, `claude-opus-5-5-high-fast`, `claude-opus-5-5-xhigh`); the managed path uses the non-Fast IDs. It also rewrites the selected parent in `cli-config.json` to `claude-opus-5-5` with `context=300k`, `effort=high`, `fast=false`, and pins Explore to non-Fast Composer. The doctor rejects a Fast Opus slug or a Composer pin that lacks `fast=false`.
+
+### Commands
 
 ```bash
-opusn "Implement the requested change and validate it."   # normal approvals
-opus  "Implement the reviewed change and validate it."    # cursor-st --opus --yolo
+# Normal Cursor approval behavior
+opusn "Implement the requested change and validate it."
+
+# Full-autonomy work workflow
+opus "Implement the reviewed change and validate it."
 ```
 
-Each Cursor mode renders only its own routing rule into the project (`global-model-routing.mdc`, `global-groky-routing.mdc`, or `global-opus-routing.mdc`) and removes the others; the user-level templates stay dormant, so hierarchies never collide in one session.
+See [`cursor/OPUS.md`](cursor/OPUS.md) and [`cursor/prompts/opus-workflow.md`](cursor/prompts/opus-workflow.md).
+
+---
+
+# Cursor workflow isolation
+
+Each Cursor mode renders only its own routing rule into the project and removes the others:
+
+| Mode | Project routing rule | Project agents |
+| --- | --- | --- |
+| Sol/Terra/Luna (`cagent`, `cursory`) | `global-model-routing.mdc` | `global-sol-planner`, `global-terra-*`, `global-luna-worker` |
+| Groky (`groky`, `groky-safe`) | `global-groky-routing.mdc` | `global-groky-*` |
+| Opus (`opus`, `opusn`) | `global-opus-routing.mdc` | `global-opus-*` |
+
+The user-level templates (`model-routing.mdc`, `groky-routing-template.mdc`, `opus-routing-template.mdc`) stay dormant with `alwaysApply: false`, so hierarchies never collide in one session. Generated project files are excluded through `.git/info/exclude`, and `cursor-st --clean-project` removes them for all three modes. No project routing rule is injected when the workspace root is `$HOME`.
+
+Current Cursor CLIs accept only `default` / `inherit` in `exploreSubagentModel`, so every mode sets it to `default` and pins the Explore model through `subagentModels.explore`.
 
 ---
 
@@ -327,7 +403,7 @@ cagent     # normal approvals
 cursory    # cursor-st --yolo
 ```
 
-All managed models in this Cursor hierarchy are also pinned to `fast=false`.
+All managed models in this Cursor hierarchy are also pinned to `fast=false`, including Explore (`gpt-5.6-sol`, reasoning high).
 
 ---
 
